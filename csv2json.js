@@ -66,10 +66,18 @@ function generate(init,past,filter) {
     for (category in init.categories) {
 
       if (datekeys[i] > filter.cutoff && datekeys[i] >= init.categories[category][0]) {
-        var basekeys = Object.keys(database[category]);
+        try {
+          var basekeys = Object.keys(database[category]);
 
-        var prevdate = basekeys.length > 0 ? basekeys[basekeys.length-1] : Number.MIN_SAFE_INTEGER;
-        var prevstrength = basekeys.length > 0 ? database[category][basekeys[basekeys.length-1]][1] : 0;
+          var prevdate = basekeys[basekeys.length-1];
+          var prevstrength = database[category][basekeys[basekeys.length-1]][1];
+        }
+        catch {
+          database[category] = {};
+
+          var prevdate = Number.MIN_SAFE_INTEGER;
+          var prevstrength = 0;
+        }
 
         //calculate c
         database[category][datekeys[i]] = [(1-Math.exp((prevdate-datekeys[i])/(1+prevstrength)))*init.categories[category][1],prevstrength];

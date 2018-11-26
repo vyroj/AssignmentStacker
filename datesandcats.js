@@ -1,8 +1,6 @@
 var init = {
   categories : {
-    one : [1,5],
-    two : [9,5],
-    three : [24,5],
+    default : [1,1]
   },
   dates : {
     3:30,

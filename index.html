@@ -5,11 +5,150 @@
    <script src="datesandcats.js"></script>
    <script src="past.js"></script>
    <script src="filter.js"></script>
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+   <script>
+      $(document).ready(function(){
+        //on load stuff
+        $("#cutoff").val(filter.cutoff);
+        $("#rise").val(filter.rise);
+        $("#decay").val(filter.decay);
+
+        loadCategories();
+
+        //memory
+        var lastName;
+
+        //events
+        $("#cutoff").change(function() {
+          filter.cutoff = Number($("#cutoff").val());
+          console.log(filter.cutoff);
+        });
+
+        $("#rise").change(function() {
+          filter.rise = Number($("#rise").val());
+          console.log(filter.rise);
+        });
+
+        $("#decay").change(function() {
+          filter.decay = Number($("#decay").val());
+          console.log(filter.decay);
+        });
+
+        $('#cats').on('focus','.name',function() {
+          lastName = $(this).val();
+          console.log(lastName);
+        })
+
+        $('#cats').on('change','.name',function() {
+          if (init.categories[$(this).val()] == null) {
+            init.categories[$(this).val()] = init.categories[lastName];
+            delete init.categories[lastName];
+          } else {
+            $(this).val(lastName);
+          }
+          console.log(init.categories);
+        })
+
+        $('#cats').on('change','.startdate',function() {
+          init.categories[$(this).siblings(".name").val()][0] = Number($(this).val());
+          console.log(init.categories);
+        })
+
+        $("#cats").on("change",".priority",function() {
+          init.categories[$(this).siblings(".name").val()][1] = Number($(this).val());
+          console.log(init.categories);
+        })
+
+        $("#addcat").click(function() {
+          appendNewCategory();
+        })
+
+        $('#cats').on('click','.del',function() {
+          delete init.categories[$(this).siblings('.name').val()];
+          $(this).parent().remove();
+        })
+
+        $('#gen').click(function() {
+          console.log(generate(init,past,filter));
+        })
+
+        $('#past').change(function(event) {
+          var input = event.target;
+
+          var reader = new FileReader();
+          reader.onload = function(){
+            var text = reader.result;
+            console.log(reader.result.substring(0, 200));
+            try {
+              past=JSON.parse(text);
+            }
+            finally {
+              console.log(past);
+            }
+          };
+          reader.readAsText(input.files[0]);
+        })
+
+        $('#download').click(function() {
+          var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generate(init,past,filter),null, "\t"));
+          var downloadObject = document.createElement("a");
+          downloadObject.setAttribute("href", dataStr);
+          downloadObject.setAttribute("download", "scene.stack");
+          document.body.appendChild(downloadObject);
+          downloadObject.click();
+          document.body.removeChild(downloadObject);
+        })
+      });
+
+      function loadCategories() {
+        $("#cats").empty();
+        for (category in init.categories) {
+          $("#cats").append(newCategory(category));
+        }
+      }
+
+      function appendNewCategory() {
+        var defaultName = "default";
+        var i = 0;
+        while (init.categories[defaultName+i] != null) {
+          i++;
+        }
+        defaultName += i;
+        init.categories[defaultName] = [1,1];
+        $("#cats").append(newCategory(defaultName));
+      }
+
+      function newCategory(category) {
+        var item = $("<li></li>");
+        var name = $("<input type = \"text\" class=\"name\"></input>").val(category);
+        var date = $("<input type = \"number\" class=\"startdate\"></input>").val(init.categories[category][0]);
+        var priority = $("<input type = \"number\" class=\"priority\"></input>").val(init.categories[category][1]);
+        var del = $("<button class=\"del\"></button>").text("delete");
+        item.append(name,date,priority,del);
+        return item;
+      }
+   </script>
 	</head>
 	<body>
-    <input type='file' accept='text/plain' onchange='openFile(event)'><br>
-    <img id='output'>
-    <a id="downloadAnchorElem" style="display:none"></a>
+    <div>
+      <input type="number" id="cutoff"> cutoff</input> <br>
+      <input type="number" id="rise"> rise</input> <br>
+      <input type="number" id="decay"> decay</input> <br>
+    </div>
+
+    <ul id="cats">
+
+    </ul>
+    <button id="addcat">+</button>
+    <button id="gen">generate</button>
+
+    <br>
+    <input type="file" id="past">Load Past</input>
+
+    <br>
+    <button id="download">Download</button>
+
     <script>
     /*
       var openFile = function(event) {
@@ -26,7 +165,6 @@
             printo(parse(reader.result));
         };
       };
-      */
       var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generate(init,past,filter),null, "\t"));
       var dlAnchorElem = document.getElementById('downloadAnchorElem');
       dlAnchorElem.setAttribute("href",     dataStr     );
@@ -34,6 +172,7 @@
       dlAnchorElem.click();
       console.log(generate(init,past,filter));
       printo(generate(init,past,filter));
+      */
     </script>
   </body>
 </html>

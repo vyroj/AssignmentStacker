@@ -6,6 +6,11 @@
    <script src="past.js"></script>
    <script src="filter.js"></script>
    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+   <link rel="stylesheet" href="ui/jquery-ui.min.css">
+   <script src="ui/external/jquery/jquery.js"></script>
+   <script src="ui/jquery-ui.min.js"></script>
+   <script src='spectrum/spectrum.js'></script>
+   <link rel='stylesheet' href='spectrum/spectrum.css' />
 
    <script>
       $(document).ready(function(){
@@ -99,6 +104,99 @@
           downloadObject.click();
           document.body.removeChild(downloadObject);
         })
+
+        $.widget('custom.legend', {
+          options: {
+            colors : {1:"#ffdddd"},
+            oldKey: ""
+          },
+          _create: function() {
+            this.element.addClass('legend');
+            this._refresh();
+
+            this._on( {
+              "click .legend-plus" : function() {
+                this._add();
+              },
+              "click .legend-del" : function(event) {
+                this._remove($(event.target).siblings(".legend-time").val());
+                $(event.target).parent().remove();
+              },
+              "mouseenter .legend-time" : function(event) {
+                this.options.oldKey = $(event.target).val();
+                console.log(this.options.oldKey);
+              },
+              "focus .legend-time" : function(event) {
+                this.options.oldKey = $(event.target).val();
+                console.log(this.options.oldKey);
+              },
+              "change .legend-time" : function(event) {
+                $(event.target).val(this._changeKey($(event.target).val()));
+              }
+        		} );
+          },
+          _displayNew: function(time,_color) {
+            var item = $("<li></li>");
+            var displayTime = $("<input type = \"number\" class = \"legend-time\"></input>").val(time);
+            var displayColor =$("<input type = \"text\"></input>").val(_color);
+            var del = $("<button class=\"legend-del\">X</button>");
+            item.append(displayTime,displayColor,del);
+            $(this.element).prepend(item);
+            $(displayColor).spectrum({
+              className: 'legend-color',
+              change : function(color) {
+                var _legend = $(this).parents(".legend");
+                _legend.legend("changeColor",$(this).siblings(".legend-time").val(),color.toHexString());
+                console.log(_legend.legend("option"));
+              }
+            });
+          },
+          _refresh: function() {
+            $('.legend').empty();
+            for (color in this.options.colors) {
+              this._displayNew(color,this.options.colors[color]);
+            }
+            var plusItem = $("<button class = \"legend-plus\">+</button>");
+            $(this.element).append(plusItem);
+          },
+          _add: function() {
+            var defaultColor = "#999999";
+            var defaultKey = 15;
+            while (this.options.colors[defaultKey] != null) {
+              defaultKey += 15;
+            }
+            this.options.colors[defaultKey] = defaultColor;
+            this._displayNew(defaultKey,defaultColor);
+          },
+          _remove: function(key) {
+            delete this.options.colors[key];
+          },
+          _changeKey: function(newKey) {
+            if (this.options.colors[newKey] == null) {
+              this.options.colors[newKey] = this.options.colors[this.options.oldKey];
+              delete this.options.colors[this.options.oldKey];
+              this.options.oldKey = newKey;
+            }
+            return this.options.oldKey;
+          },
+          changeColor: function(key,color) {
+            this.options.colors[key] = color;
+          },
+          color: function() {
+            return "yellow";
+          }
+        });
+
+        $.widget('custom.acalendar', {
+          options: {
+            times: {17870 : 1}
+          },
+          _create : function() {
+            this.element.addclass("acalendar");
+          }
+        })
+
+        $('#test').legend();
       });
 
       function loadCategories() {
@@ -148,6 +246,8 @@
 
     <br>
     <button id="download">Download</button>
+
+    <div id="test"></div>
 
     <script>
     /*

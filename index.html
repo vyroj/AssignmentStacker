@@ -189,14 +189,105 @@
 
         $.widget('custom.acalendar', {
           options: {
-            times: {17870 : 1}
+            times: {17870 : 1},
+            year: (new Date()).getFullYear(),
+            month: (new Date()).getMonth(),
+            mos : ['January','February','March','April','May','June','July','August','September','October','November','December'],
+				    day : ['Sun', 'Mon', 'Tue', 'Wed' , 'Thu', 'Fri', 'Sat']
           },
           _create : function() {
-            this.element.addclass("acalendar");
+            this.element.addClass("acalendar");
+            this._refresh();
+
+            this._on({
+              "click .prevy" : function() {
+                this.options.year--;
+                $(this.element).children(".year").text(this.options.year);
+                this._getDays();
+              },
+              "click .nexty" : function() {
+                this.options.year++;
+                $(this.element).children(".year").text(this.options.year);
+                this._getDays();
+              },
+              "click .prevm" : function() {
+                if (this.options.month > 0) {
+                  this.options.month--;
+                } else {
+                  this.options.month = 11;
+                  this.options.year--;
+                  $(this.element).children(".year").text(this.options.year);
+                }
+                $(this.element).children(".month").text(this.options.mos[this.options.month]);
+                this._getDays();
+              },
+              "click .nextm" : function() {
+                if (this.options.month < 11) {
+                  this.options.month++;
+                } else {
+                  this.options.month = 0;
+                  this.options.year++;
+                  $(this.element).children(".year").text(this.options.year);
+                }
+                $(this.element).children(".month").text(this.options.mos[this.options.month]);
+                this._getDays();
+              }
+            })
+          },
+          _refresh : function() {
+            $(this.element).empty();
+
+            $(this.element).append($("<button></button>").addClass("prevy").text("<<"));
+            $(this.element).append($("<span></span>").addClass("year").text(this.options.year));
+            $(this.element).append($("<button></button>").addClass("nexty").text(">>"));
+
+            $(this.element).append($("<br>"));
+
+            $(this.element).append($("<button></button>").addClass("prevm").text("<"));
+            $(this.element).append($("<span></span>").addClass("month").text(this.options.mos[this.options.month]));
+            $(this.element).append($("<button></button>").addClass("nextm").text(">"));
+
+            $(this.element).append($("<table></table>").addClass("dates"));
+            this._getDays();
+          },
+          _getDays : function() {
+            var dates = $(this.element).children(".dates");
+            dates.empty();
+
+            var dayRow = $("<tr></tr>");
+            for (i = 0; i < 7; i++) {
+              dayRow.append($("<td></td>").text(this.options.day[i]));
+            }
+            dates.append(dayRow);
+
+            var firstDay = new Date(this.options.year,this.options.month,1);
+            var lastDay = new Date(this.options.year,this.options.month+1,0);
+            var offset = firstDay.getDay();
+
+            var dayCount = 1;
+            outerstuff : for (i = 0; i < 6; i++) {
+              var newRow = $("<tr></tr>").addClass("row"+i);
+              for (j = 0; j < 7; j++) {
+                if (offset <= 0) {
+                  newRow.append($("<td></td>").append($("<button></button>").addClass("cell"+i).text(dayCount)));
+
+                  if (dayCount >= lastDay.getDate()) {
+                    dates.append(newRow);
+                    break outerstuff;
+                  }
+                  dayCount++;
+                } else {
+                  newRow.append($("<td></td>"));
+                  offset--;
+                }
+              }
+              dates.append(newRow);
+            }
           }
         })
 
         $('#test').legend();
+        $("#test2").acalendar();
       });
 
       function loadCategories() {
@@ -248,6 +339,7 @@
     <button id="download">Download</button>
 
     <div id="test"></div>
+    <div id="test2"></div>
 
     <script>
     /*

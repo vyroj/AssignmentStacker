@@ -1,32 +1,3 @@
-var filter = {
-  cutoff: 0,
-  rise: .05,
-  decay: .05
-}
-var init = {
-  categories : {
-    default : [1,1]
-  },
-  dates : {
-    3:30,
-    6:30,
-    9:30,
-    12:30,
-    15:30,
-    18:30,
-    21:30,
-    24:30,
-    27:30,
-    30:30,
-    33:30,
-    36:30,
-    39:30,
-    42:30,
-    45:30,
-    48:30
-  }
-}
-
 $(document).ready(function(){
   //on load stuff
   $("#cutoff").val(filter.cutoff);
@@ -317,7 +288,7 @@ $(document).ready(function(){
          if (offset <= 0) {
            var newButt = $("<button></button>").addClass("cell").text(dayCount);
            if (this.options.times[dateToInd(new Date(this.options.year,this.options.month,dayCount))] != null) {
-             newButt.addClass("cell-"+dateToInd(new Date(this.options.year,this.options.month,dayCount)))
+             newButt.addClass("cell-"+this.options.times[dateToInd(new Date(this.options.year,this.options.month,dayCount))])
                 .css('background-color',this.options.legendRef.legend('option','colors')[this.options.times[dateToInd(new Date(this.options.year,this.options.month,dayCount))]]);
            }
            newRow.append($("<td></td>").append(newButt));
@@ -377,6 +348,13 @@ $(document).ready(function(){
 
   $('#test').legend({calRef : $('#test2')});
   $("#test2").acalendar({legendRef : $('#test')});
+
+  $( "#accordion" ).accordion({
+    heightStyle: "content"
+  });
+
+  $( "#tabs" ).tabs().addClass( "ui-tabs-vertical ui-helper-clearfix" );
+  $( "#tabs li" ).removeClass( "ui-corner-top" ).addClass( "ui-corner-left" );
 });
 
 function dateToInd(dateObj) {

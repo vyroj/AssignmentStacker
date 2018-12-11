@@ -1,7 +1,7 @@
 <html>
   <head>
 	 <meta charset="utf-8">
-   <script src="csv2json.js"></script>
+
    <script src="past.js"></script>
    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
    <link rel="stylesheet" href="ui/jquery-ui.min.css">
@@ -12,29 +12,56 @@
 
    <link rel='stylesheet' href='wow.css' />
    <script src="whoa.js"></script>
+   <script src="buffer.js"></script>
 
+   <style>
+.ui-tabs-vertical { width: 55em; }
+.ui-tabs-vertical .ui-tabs-nav { padding: .2em .1em .2em .2em; float: left; width: 12em; }
+.ui-tabs-vertical .ui-tabs-nav li { clear: left; width: 100%; border-bottom-width: 1px !important; border-right-width: 0 !important; margin: 0 -1px .2em 0; }
+.ui-tabs-vertical .ui-tabs-nav li a { display:block; }
+.ui-tabs-vertical .ui-tabs-nav li.ui-tabs-active { padding-bottom: 0; padding-right: .1em; border-right-width: 1px; }
+.ui-tabs-vertical .ui-tabs-panel { padding: 1em; float: right; width: 40em;}
+</style>
 	</head>
 	<body>
-    <div>
-      <input type="text" id="cutoff"> cutoff</input> <br>
-      <input type="number" id="rise"> rise</input> <br>
-      <input type="number" id="decay"> decay</input> <br>
+    <div id="tabs">
+      <ul>
+        <li><a href="#tabs-1">Pregen</a></li>
+        <li><a href="#tabs-2">Result</a></li>
+      </ul>
+
+      <div id="tabs-1">
+        <div id="accordion">
+          <h3>Settings</h3>
+          <div>
+            <input type="number" id="rise"> rise</input> <br>
+            <input type="number" id="decay"> decay</input> <br>
+          </div>
+          <h3>Categories</h3>
+          <div>
+            <ul id="cats"></ul>
+            <button id="addcat">+</button>
+          </div>
+          <h3>Dates</h3>
+          <div>
+            <div id="test"></div>
+            <div id="test2"></div>
+          </div>
+          <h3>Generation</h3>
+          <div>
+            <input type="text" id="cutoff"> cutoff</input> <br>
+            <button id="gen">generate</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tabs-2">
+        <input type="file" id="past">Load Past</input>
+
+        <br>
+        <button id="download">Download</button>
+      </div>
     </div>
-
-    <ul id="cats">
-
-    </ul>
-    <button id="addcat">+</button>
-    <button id="gen">generate</button>
-
-    <br>
-    <input type="file" id="past">Load Past</input>
-
-    <br>
-    <button id="download">Download</button>
-
-    <div id="test"></div>
-    <div id="test2"></div>
 
     <script>
     /*

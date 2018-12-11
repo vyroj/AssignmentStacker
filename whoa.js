@@ -10,7 +10,7 @@ $(document).ready(function(){
   var lastName;
 
   //events
-  $("#cutoff").datepicker();
+  $("#cutoff").datepicker().datepicker('setDate',new Date());
   $("#cutoff").change(function() {
     filter.cutoff = dateToInd($("#cutoff").datepicker('getDate'));
     console.log(filter.cutoff);
@@ -61,8 +61,7 @@ $(document).ready(function(){
   })
 
   $('#gen').click(function() {
-    init.dates = $("#test2").acalendar('option','times');
-    console.log(generate(init,past,filter));
+    updateResults();
   })
 
   $('#past').change(function(event) {
@@ -74,6 +73,7 @@ $(document).ready(function(){
      console.log(reader.result.substring(0, 200));
      try {
        past=JSON.parse(text);
+       chartIt();
      }
      finally {
        console.log(past);
@@ -83,8 +83,7 @@ $(document).ready(function(){
   })
 
   $('#download').click(function() {
-    init.dates = $("#test2").acalendar('option',times);
-    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generate(init,past,filter),null, "\t"));
+    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(past,null, "\t"));
     var downloadObject = document.createElement("a");
     downloadObject.setAttribute("href", dataStr);
     downloadObject.setAttribute("download", "scene.stack");
@@ -316,7 +315,7 @@ $(document).ready(function(){
    deleteColor : function(value) {
      var times = this.options.times;
      Object.keys(times).map(function(key,index) {
-       if (times[key] == value) {
+       if (times[key] == parseInt(value)) {
          delete times[key];
        }
      })
@@ -332,7 +331,7 @@ $(document).ready(function(){
    changeTime : function(oldKey,newKey) {
       var times = this.options.times;
       Object.keys(times).map(function(key,index) {
-        if (times[key] == oldKey) {
+        if (times[key] == parseInt(oldKey)) {
           times[key] = newKey;
         }
       })
@@ -349,13 +348,81 @@ $(document).ready(function(){
   $('#test').legend({calRef : $('#test2')});
   $("#test2").acalendar({legendRef : $('#test')});
 
-  $( "#accordion" ).accordion({
+  $( ".accordion" ).accordion({
     heightStyle: "content"
   });
 
   $( "#tabs" ).tabs().addClass( "ui-tabs-vertical ui-helper-clearfix" );
   $( "#tabs li" ).removeClass( "ui-corner-top" ).addClass( "ui-corner-left" );
+
+  $("#pickdate").datepicker().datepicker('setDate',new Date());
+  $("#pickdate").change(function() {
+    displayResults();
+  })
+
+  updateResults();
+
 });
+
+function updateResults() {
+  init.dates = $("#test2").acalendar('option','times');
+  past = generate(init,past,filter);
+  console.log(past);
+
+  displayResults();
+  chartIt();
+}
+
+function displayResults() {
+  $("#currentDisplay").empty();
+  for (category in past) {
+    if (past[category][dateToInd($("#pickdate").datepicker('getDate'))] != null) {
+      $("#currentDisplay").append($("<li></li>").text(category+": "+Math.round(past[category][dateToInd($("#pickdate").datepicker('getDate'))][0])+" min"));
+    }
+  }
+}
+
+function chartIt() {
+  var traces = [];
+
+  for (category in past) {
+    var aside = Object.keys(past[category]);
+    var trac = {
+      x: aside.map(function (k) {
+        var temp = indToDate(k);
+        return temp.getFullYear()+'-'+(temp.getMonth()+1)+'-'+temp.getDate();
+      }),
+      y: aside.map(function (k) {
+        return past[category][k][0];
+      }),
+      type:"scatter",
+      name:category};
+    console.log(trac);
+    traces.push(trac);
+  }
+  var layout = {
+    showlegend: true,
+    xaxis: {
+      type: 'date',
+      title: 'date',
+      titlefont: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: '888888'
+      }
+    },
+    yaxis: {
+      title: 'time',
+      titlefont: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: '888888'
+      }
+    }
+  }
+  console.log(traces);
+  Plotly.react(document.getElementById("chart"),traces,layout);
+}
 
 function dateToInd(dateObj) {
   return Date.UTC(dateObj.getFullYear(),dateObj.getMonth(),dateObj.getDate())/(24*3600*1000);
@@ -385,8 +452,8 @@ function appendNewCategory() {
 function newCategory(category) {
  var item = $("<li></li>");
  var name = $("<input type = \"text\" class=\"name\"></input>").val(category);
- var date = $("<input type = \"text\" class=\"startdate\"></input>").val(init.categories[category][0]);
- date.datepicker();
+ var date = $("<input type = \"text\" class=\"startdate\"></input>");
+ date.datepicker().datepicker('setDate',indToDate(init.categories[category][0]));
  var priority = $("<input type = \"number\" class=\"priority\"></input>").val(init.categories[category][1]);
  var del = $("<button class=\"del\"></button>").text("delete");
  item.append(name,date,priority,del);

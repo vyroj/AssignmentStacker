@@ -10,7 +10,7 @@ $(document).ready(function(){
   var lastName;
 
   //events
-  $("#cutoff").datepicker();
+  $("#cutoff").datepicker().datepicker('setDate',new Date());
   $("#cutoff").change(function() {
     filter.cutoff = dateToInd($("#cutoff").datepicker('getDate'));
     console.log(filter.cutoff);
@@ -61,10 +61,7 @@ $(document).ready(function(){
   })
 
   $('#gen').click(function() {
-    init.dates = $("#test2").acalendar('option','times');
-    past = generate(init,past,filter);
-    console.log(past);
-    chartIt();
+    updateResults();
   })
 
   $('#past').change(function(event) {
@@ -86,8 +83,7 @@ $(document).ready(function(){
   })
 
   $('#download').click(function() {
-    init.dates = $("#test2").acalendar('option',"times");
-    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generate(init,past,filter),null, "\t"));
+    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(past,null, "\t"));
     var downloadObject = document.createElement("a");
     downloadObject.setAttribute("href", dataStr);
     downloadObject.setAttribute("download", "scene.stack");
@@ -352,16 +348,39 @@ $(document).ready(function(){
   $('#test').legend({calRef : $('#test2')});
   $("#test2").acalendar({legendRef : $('#test')});
 
-  $( "#accordion" ).accordion({
+  $( ".accordion" ).accordion({
     heightStyle: "content"
   });
 
   $( "#tabs" ).tabs().addClass( "ui-tabs-vertical ui-helper-clearfix" );
   $( "#tabs li" ).removeClass( "ui-corner-top" ).addClass( "ui-corner-left" );
 
-  chartIt();
+  $("#pickdate").datepicker().datepicker('setDate',new Date());
+  $("#pickdate").change(function() {
+    displayResults();
+  })
+
+  updateResults();
 
 });
+
+function updateResults() {
+  init.dates = $("#test2").acalendar('option','times');
+  past = generate(init,past,filter);
+  console.log(past);
+
+  displayResults();
+  chartIt();
+}
+
+function displayResults() {
+  $("#currentDisplay").empty();
+  for (category in past) {
+    if (past[category][dateToInd($("#pickdate").datepicker('getDate'))] != null) {
+      $("#currentDisplay").append($("<li></li>").text(category+": "+Math.round(past[category][dateToInd($("#pickdate").datepicker('getDate'))][0])+" min"));
+    }
+  }
+}
 
 function chartIt() {
   var traces = [];
@@ -433,8 +452,8 @@ function appendNewCategory() {
 function newCategory(category) {
  var item = $("<li></li>");
  var name = $("<input type = \"text\" class=\"name\"></input>").val(category);
- var date = $("<input type = \"text\" class=\"startdate\"></input>").val(init.categories[category][0]);
- date.datepicker();
+ var date = $("<input type = \"text\" class=\"startdate\"></input>");
+ date.datepicker().datepicker('setDate',indToDate(init.categories[category][0]));
  var priority = $("<input type = \"number\" class=\"priority\"></input>").val(init.categories[category][1]);
  var del = $("<button class=\"del\"></button>").text("delete");
  item.append(name,date,priority,del);

@@ -31,7 +31,7 @@
       </ul>
 
       <div id="tabs-1">
-        <div id="accordion">
+        <div class="accordion">
           <h3>Settings</h3>
           <div>
             <input type="number" id="rise"> rise</input> <br>
@@ -56,12 +56,25 @@
       </div>
 
       <div id="tabs-2">
-        <div id="chart"></div>
-
-        <input type="file" id="past">Load Past</input>
-
-        <br>
-        <button id="download">Download</button>
+        <div class="accordion">
+          <h3>Current</h3>
+          <div>
+            <input type="text" id="pickdate"></input>
+            <br>
+            <ul id="currentDisplay">
+            </ul>
+          </div>
+          <h3>Chart</h3>
+          <div>
+            <div id="chart"></div>
+          </div>
+          <h3>Save and Load</h3>
+          <div>
+            <input type="file" id="past">Load Past</input>
+            <br>
+            <button id="download">Download</button>
+          </div>
+        </div>
       </div>
     </div>
 

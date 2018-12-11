@@ -1,10 +1,8 @@
 <html>
   <head>
 	 <meta charset="utf-8">
-   <script src="csv2json.js"></script>
-   <script src="datesandcats.js"></script>
+
    <script src="past.js"></script>
-   <script src="filter.js"></script>
    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
    <link rel="stylesheet" href="ui/jquery-ui.min.css">
    <script src="ui/external/jquery/jquery.js"></script>
@@ -12,334 +10,58 @@
    <script src='spectrum/spectrum.js'></script>
    <link rel='stylesheet' href='spectrum/spectrum.css' />
 
-   <script>
-      $(document).ready(function(){
-        //on load stuff
-        $("#cutoff").val(filter.cutoff);
-        $("#rise").val(filter.rise);
-        $("#decay").val(filter.decay);
+   <link rel='stylesheet' href='wow.css' />
+   <script src="whoa.js"></script>
+   <script src="buffer.js"></script>
 
-        loadCategories();
-
-        //memory
-        var lastName;
-
-        //events
-        $("#cutoff").change(function() {
-          filter.cutoff = Number($("#cutoff").val());
-          console.log(filter.cutoff);
-        });
-
-        $("#rise").change(function() {
-          filter.rise = Number($("#rise").val());
-          console.log(filter.rise);
-        });
-
-        $("#decay").change(function() {
-          filter.decay = Number($("#decay").val());
-          console.log(filter.decay);
-        });
-
-        $('#cats').on('focus','.name',function() {
-          lastName = $(this).val();
-          console.log(lastName);
-        })
-
-        $('#cats').on('change','.name',function() {
-          if (init.categories[$(this).val()] == null) {
-            init.categories[$(this).val()] = init.categories[lastName];
-            delete init.categories[lastName];
-          } else {
-            $(this).val(lastName);
-          }
-          console.log(init.categories);
-        })
-
-        $('#cats').on('change','.startdate',function() {
-          init.categories[$(this).siblings(".name").val()][0] = Number($(this).val());
-          console.log(init.categories);
-        })
-
-        $("#cats").on("change",".priority",function() {
-          init.categories[$(this).siblings(".name").val()][1] = Number($(this).val());
-          console.log(init.categories);
-        })
-
-        $("#addcat").click(function() {
-          appendNewCategory();
-        })
-
-        $('#cats').on('click','.del',function() {
-          delete init.categories[$(this).siblings('.name').val()];
-          $(this).parent().remove();
-        })
-
-        $('#gen').click(function() {
-          console.log(generate(init,past,filter));
-        })
-
-        $('#past').change(function(event) {
-          var input = event.target;
-
-          var reader = new FileReader();
-          reader.onload = function(){
-            var text = reader.result;
-            console.log(reader.result.substring(0, 200));
-            try {
-              past=JSON.parse(text);
-            }
-            finally {
-              console.log(past);
-            }
-          };
-          reader.readAsText(input.files[0]);
-        })
-
-        $('#download').click(function() {
-          var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generate(init,past,filter),null, "\t"));
-          var downloadObject = document.createElement("a");
-          downloadObject.setAttribute("href", dataStr);
-          downloadObject.setAttribute("download", "scene.stack");
-          document.body.appendChild(downloadObject);
-          downloadObject.click();
-          document.body.removeChild(downloadObject);
-        })
-
-        $.widget('custom.legend', {
-          options: {
-            colors : {1:"#ffdddd"},
-            oldKey: ""
-          },
-          _create: function() {
-            this.element.addClass('legend');
-            this._refresh();
-
-            this._on( {
-              "click .legend-plus" : function() {
-                this._add();
-              },
-              "click .legend-del" : function(event) {
-                this._remove($(event.target).siblings(".legend-time").val());
-                $(event.target).parent().remove();
-              },
-              "mouseenter .legend-time" : function(event) {
-                this.options.oldKey = $(event.target).val();
-                console.log(this.options.oldKey);
-              },
-              "focus .legend-time" : function(event) {
-                this.options.oldKey = $(event.target).val();
-                console.log(this.options.oldKey);
-              },
-              "change .legend-time" : function(event) {
-                $(event.target).val(this._changeKey($(event.target).val()));
-              }
-        		} );
-          },
-          _displayNew: function(time,_color) {
-            var item = $("<li></li>");
-            var displayTime = $("<input type = \"number\" class = \"legend-time\"></input>").val(time);
-            var displayColor =$("<input type = \"text\"></input>").val(_color);
-            var del = $("<button class=\"legend-del\">X</button>");
-            item.append(displayTime,displayColor,del);
-            $(this.element).prepend(item);
-            $(displayColor).spectrum({
-              className: 'legend-color',
-              change : function(color) {
-                var _legend = $(this).parents(".legend");
-                _legend.legend("changeColor",$(this).siblings(".legend-time").val(),color.toHexString());
-                console.log(_legend.legend("option"));
-              }
-            });
-          },
-          _refresh: function() {
-            $('.legend').empty();
-            for (color in this.options.colors) {
-              this._displayNew(color,this.options.colors[color]);
-            }
-            var plusItem = $("<button class = \"legend-plus\">+</button>");
-            $(this.element).append(plusItem);
-          },
-          _add: function() {
-            var defaultColor = "#999999";
-            var defaultKey = 15;
-            while (this.options.colors[defaultKey] != null) {
-              defaultKey += 15;
-            }
-            this.options.colors[defaultKey] = defaultColor;
-            this._displayNew(defaultKey,defaultColor);
-          },
-          _remove: function(key) {
-            delete this.options.colors[key];
-          },
-          _changeKey: function(newKey) {
-            if (this.options.colors[newKey] == null) {
-              this.options.colors[newKey] = this.options.colors[this.options.oldKey];
-              delete this.options.colors[this.options.oldKey];
-              this.options.oldKey = newKey;
-            }
-            return this.options.oldKey;
-          },
-          changeColor: function(key,color) {
-            this.options.colors[key] = color;
-          },
-          color: function() {
-            return "yellow";
-          }
-        });
-
-        $.widget('custom.acalendar', {
-          options: {
-            times: {17870 : 1},
-            year: (new Date()).getFullYear(),
-            month: (new Date()).getMonth(),
-            mos : ['January','February','March','April','May','June','July','August','September','October','November','December'],
-				    day : ['Sun', 'Mon', 'Tue', 'Wed' , 'Thu', 'Fri', 'Sat']
-          },
-          _create : function() {
-            this.element.addClass("acalendar");
-            this._refresh();
-
-            this._on({
-              "click .prevy" : function() {
-                this.options.year--;
-                $(this.element).children(".year").text(this.options.year);
-                this._getDays();
-              },
-              "click .nexty" : function() {
-                this.options.year++;
-                $(this.element).children(".year").text(this.options.year);
-                this._getDays();
-              },
-              "click .prevm" : function() {
-                if (this.options.month > 0) {
-                  this.options.month--;
-                } else {
-                  this.options.month = 11;
-                  this.options.year--;
-                  $(this.element).children(".year").text(this.options.year);
-                }
-                $(this.element).children(".month").text(this.options.mos[this.options.month]);
-                this._getDays();
-              },
-              "click .nextm" : function() {
-                if (this.options.month < 11) {
-                  this.options.month++;
-                } else {
-                  this.options.month = 0;
-                  this.options.year++;
-                  $(this.element).children(".year").text(this.options.year);
-                }
-                $(this.element).children(".month").text(this.options.mos[this.options.month]);
-                this._getDays();
-              }
-            })
-          },
-          _refresh : function() {
-            $(this.element).empty();
-
-            $(this.element).append($("<button></button>").addClass("prevy").text("<<"));
-            $(this.element).append($("<span></span>").addClass("year").text(this.options.year));
-            $(this.element).append($("<button></button>").addClass("nexty").text(">>"));
-
-            $(this.element).append($("<br>"));
-
-            $(this.element).append($("<button></button>").addClass("prevm").text("<"));
-            $(this.element).append($("<span></span>").addClass("month").text(this.options.mos[this.options.month]));
-            $(this.element).append($("<button></button>").addClass("nextm").text(">"));
-
-            $(this.element).append($("<table></table>").addClass("dates"));
-            this._getDays();
-          },
-          _getDays : function() {
-            var dates = $(this.element).children(".dates");
-            dates.empty();
-
-            var dayRow = $("<tr></tr>");
-            for (i = 0; i < 7; i++) {
-              dayRow.append($("<td></td>").text(this.options.day[i]));
-            }
-            dates.append(dayRow);
-
-            var firstDay = new Date(this.options.year,this.options.month,1);
-            var lastDay = new Date(this.options.year,this.options.month+1,0);
-            var offset = firstDay.getDay();
-
-            var dayCount = 1;
-            outerstuff : for (i = 0; i < 6; i++) {
-              var newRow = $("<tr></tr>").addClass("row"+i);
-              for (j = 0; j < 7; j++) {
-                if (offset <= 0) {
-                  newRow.append($("<td></td>").append($("<button></button>").addClass("cell"+i).text(dayCount)));
-
-                  if (dayCount >= lastDay.getDate()) {
-                    dates.append(newRow);
-                    break outerstuff;
-                  }
-                  dayCount++;
-                } else {
-                  newRow.append($("<td></td>"));
-                  offset--;
-                }
-              }
-              dates.append(newRow);
-            }
-          }
-        })
-
-        $('#test').legend();
-        $("#test2").acalendar();
-      });
-
-      function loadCategories() {
-        $("#cats").empty();
-        for (category in init.categories) {
-          $("#cats").append(newCategory(category));
-        }
-      }
-
-      function appendNewCategory() {
-        var defaultName = "default";
-        var i = 0;
-        while (init.categories[defaultName+i] != null) {
-          i++;
-        }
-        defaultName += i;
-        init.categories[defaultName] = [1,1];
-        $("#cats").append(newCategory(defaultName));
-      }
-
-      function newCategory(category) {
-        var item = $("<li></li>");
-        var name = $("<input type = \"text\" class=\"name\"></input>").val(category);
-        var date = $("<input type = \"number\" class=\"startdate\"></input>").val(init.categories[category][0]);
-        var priority = $("<input type = \"number\" class=\"priority\"></input>").val(init.categories[category][1]);
-        var del = $("<button class=\"del\"></button>").text("delete");
-        item.append(name,date,priority,del);
-        return item;
-      }
-   </script>
+   <style>
+.ui-tabs-vertical { width: 55em; }
+.ui-tabs-vertical .ui-tabs-nav { padding: .2em .1em .2em .2em; float: left; width: 12em; }
+.ui-tabs-vertical .ui-tabs-nav li { clear: left; width: 100%; border-bottom-width: 1px !important; border-right-width: 0 !important; margin: 0 -1px .2em 0; }
+.ui-tabs-vertical .ui-tabs-nav li a { display:block; }
+.ui-tabs-vertical .ui-tabs-nav li.ui-tabs-active { padding-bottom: 0; padding-right: .1em; border-right-width: 1px; }
+.ui-tabs-vertical .ui-tabs-panel { padding: 1em; float: right; width: 40em;}
+</style>
 	</head>
 	<body>
-    <div>
-      <input type="number" id="cutoff"> cutoff</input> <br>
-      <input type="number" id="rise"> rise</input> <br>
-      <input type="number" id="decay"> decay</input> <br>
+    <div id="tabs">
+      <ul>
+        <li><a href="#tabs-1">Pregen</a></li>
+        <li><a href="#tabs-2">Result</a></li>
+      </ul>
+
+      <div id="tabs-1">
+        <div id="accordion">
+          <h3>Settings</h3>
+          <div>
+            <input type="number" id="rise"> rise</input> <br>
+            <input type="number" id="decay"> decay</input> <br>
+          </div>
+          <h3>Categories</h3>
+          <div>
+            <ul id="cats"></ul>
+            <button id="addcat">+</button>
+          </div>
+          <h3>Dates</h3>
+          <div>
+            <div id="test"></div>
+            <div id="test2"></div>
+          </div>
+          <h3>Generation</h3>
+          <div>
+            <input type="text" id="cutoff"> cutoff</input> <br>
+            <button id="gen">generate</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tabs-2">
+        <input type="file" id="past">Load Past</input>
+
+        <br>
+        <button id="download">Download</button>
+      </div>
     </div>
-
-    <ul id="cats">
-
-    </ul>
-    <button id="addcat">+</button>
-    <button id="gen">generate</button>
-
-    <br>
-    <input type="file" id="past">Load Past</input>
-
-    <br>
-    <button id="download">Download</button>
-
-    <div id="test"></div>
-    <div id="test2"></div>
 
     <script>
     /*

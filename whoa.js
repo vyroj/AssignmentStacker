@@ -62,7 +62,9 @@ $(document).ready(function(){
 
   $('#gen').click(function() {
     init.dates = $("#test2").acalendar('option','times');
-    console.log(generate(init,past,filter));
+    past = generate(init,past,filter);
+    console.log(past);
+    chartIt();
   })
 
   $('#past').change(function(event) {
@@ -74,6 +76,7 @@ $(document).ready(function(){
      console.log(reader.result.substring(0, 200));
      try {
        past=JSON.parse(text);
+       chartIt();
      }
      finally {
        console.log(past);
@@ -83,7 +86,7 @@ $(document).ready(function(){
   })
 
   $('#download').click(function() {
-    init.dates = $("#test2").acalendar('option',times);
+    init.dates = $("#test2").acalendar('option',"times");
     var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generate(init,past,filter),null, "\t"));
     var downloadObject = document.createElement("a");
     downloadObject.setAttribute("href", dataStr);
@@ -316,7 +319,7 @@ $(document).ready(function(){
    deleteColor : function(value) {
      var times = this.options.times;
      Object.keys(times).map(function(key,index) {
-       if (times[key] == value) {
+       if (times[key] == parseInt(value)) {
          delete times[key];
        }
      })
@@ -332,7 +335,7 @@ $(document).ready(function(){
    changeTime : function(oldKey,newKey) {
       var times = this.options.times;
       Object.keys(times).map(function(key,index) {
-        if (times[key] == oldKey) {
+        if (times[key] == parseInt(oldKey)) {
           times[key] = newKey;
         }
       })
@@ -355,7 +358,52 @@ $(document).ready(function(){
 
   $( "#tabs" ).tabs().addClass( "ui-tabs-vertical ui-helper-clearfix" );
   $( "#tabs li" ).removeClass( "ui-corner-top" ).addClass( "ui-corner-left" );
+
+  chartIt();
+
 });
+
+function chartIt() {
+  var traces = [];
+
+  for (category in past) {
+    var aside = Object.keys(past[category]);
+    var trac = {
+      x: aside.map(function (k) {
+        var temp = indToDate(k);
+        return temp.getFullYear()+'-'+(temp.getMonth()+1)+'-'+temp.getDate();
+      }),
+      y: aside.map(function (k) {
+        return past[category][k][0];
+      }),
+      type:"scatter",
+      name:category};
+    console.log(trac);
+    traces.push(trac);
+  }
+  var layout = {
+    showlegend: true,
+    xaxis: {
+      type: 'date',
+      title: 'date',
+      titlefont: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: '888888'
+      }
+    },
+    yaxis: {
+      title: 'time',
+      titlefont: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: '888888'
+      }
+    }
+  }
+  console.log(traces);
+  Plotly.react(document.getElementById("chart"),traces,layout);
+}
 
 function dateToInd(dateObj) {
   return Date.UTC(dateObj.getFullYear(),dateObj.getMonth(),dateObj.getDate())/(24*3600*1000);

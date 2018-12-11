@@ -8,22 +8,11 @@ var init = {
     default : [1,1]
   },
   dates : {
-    3:30,
-    6:30,
-    9:30,
-    12:30,
-    15:30,
-    18:30,
-    21:30,
-    24:30,
-    27:30,
-    30:30,
-    33:30,
-    36:30,
-    39:30,
-    42:30,
-    45:30,
-    48:30
+  }
+}
+
+var past = {
+  default : {
   }
 }
 
@@ -89,6 +78,8 @@ function generate(init,past,filter) {
         database[category][datekeys[i]] = [(1-Math.exp((prevdate-datekeys[i])/(1+prevstrength)))*init.categories[category][1],prevstrength];
 
         total += database[category][datekeys[i]][0];
+      } else {
+        database[category] = {};
       }
     }
 

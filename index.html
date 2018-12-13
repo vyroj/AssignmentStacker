@@ -26,31 +26,33 @@
 	<body>
     <div id="tabs">
       <ul>
-        <li><a href="#tabs-1">Pregen</a></li>
-        <li><a href="#tabs-2">Result</a></li>
+        <li><a href="#tabs-1" title="Pregeneration data, including problem categories and assignment dates.">Pregen</a></li>
+        <li><a href="#tabs-2" title="The output (if you hit generate)">Result</a></li>
       </ul>
 
       <div id="tabs-1">
         <div class="accordion">
           <h3>Settings</h3>
           <div>
-            <input type="number" id="rise"> rise</input> <br>
-            <input type="number" id="decay"> decay</input> <br>
+            <input type="number" id="rise" title="How fast is this subject memorized?"> rise</input> <br>
+            <input type="number" id="decay" title="How fast is this subject forgotten?"> decay</input> <br>
           </div>
           <h3>Categories</h3>
           <div>
             <ul id="cats"></ul>
-            <button id="addcat">+</button>
-          </div>
-          <h3>Dates</h3>
-          <div>
-            <div id="test"></div>
-            <div id="test2"></div>
+            <button id="addcat" title="Add new category of problems.">+</button>
           </div>
           <h3>Generation</h3>
           <div>
-            <input type="text" id="cutoff"> cutoff</input> <br>
+            <div id="test"></div>
+            <div id="test2"></div>
             <button id="gen">generate</button>
+          </div>
+          <h3>Save and Load</h3>
+          <div>
+            <input type="file" id="init">Load Pregen</input>
+            <br>
+            <button id="downloadi">Download</button>
           </div>
         </div>
       </div>

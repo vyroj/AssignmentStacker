@@ -1,8 +1,8 @@
 $(document).ready(function(){
   //on load stuff
-  $("#cutoff").val(filter.cutoff);
-  $("#rise").val(filter.rise);
-  $("#decay").val(filter.decay);
+  $("#cutoff").val(init.cutoff);
+  $("#rise").val(init.rise);
+  $("#decay").val(init.decay);
 
   loadCategories();
 
@@ -10,20 +10,15 @@ $(document).ready(function(){
   var lastName;
 
   //events
-  $("#cutoff").datepicker().datepicker('setDate',new Date());
-  $("#cutoff").change(function() {
-    filter.cutoff = dateToInd($("#cutoff").datepicker('getDate'));
-    console.log(filter.cutoff);
-  });
 
   $("#rise").change(function() {
-   filter.rise = Number($("#rise").val());
-   console.log(filter.rise);
+   init.rise = Number($("#rise").val());
+   console.log(init.rise);
   });
 
   $("#decay").change(function() {
-   filter.decay = Number($("#decay").val());
-   console.log(filter.decay);
+   init.decay = Number($("#decay").val());
+   console.log(init.decay);
   });
 
   $('#cats').on('focus','.name',function() {
@@ -92,6 +87,35 @@ $(document).ready(function(){
     document.body.removeChild(downloadObject);
   })
 
+  $('#init').change(function(event) {
+    var input = event.target;
+
+    var reader = new FileReader();
+    reader.onload = function(){
+      var text = reader.result;
+      console.log(reader.result.substring(0, 200));
+      try {
+        init=JSON.parse(text);
+        reverseUpdate();
+      }
+      finally {
+        console.log(init);
+      }
+    };
+    reader.readAsText(input.files[0]);
+  })
+
+  $('#downloadi').click(function() {
+    updateResults();
+    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(init,null, "\t"));
+    var downloadObject = document.createElement("a");
+    downloadObject.setAttribute("href", dataStr);
+    downloadObject.setAttribute("download", "init.stack");
+    document.body.appendChild(downloadObject);
+    downloadObject.click();
+    document.body.removeChild(downloadObject);
+  })
+
   $.widget('custom.legend', {
    options: {
      colors : {1:"#ffdddd"},
@@ -101,7 +125,7 @@ $(document).ready(function(){
    },
    _create: function() {
      this.element.addClass('legend');
-     this._refresh();
+     this.refresh();
 
      this._on( {
        "click .legend-plus" : function() {
@@ -122,6 +146,11 @@ $(document).ready(function(){
        },
        "change .legend-time" : function(event) {
          $(event.target).val(this._changeKey($(event.target).val()));
+       },
+       "click .cut" : function() {
+         this.options.selected = "cutoff";
+         $(this.element).find(".selected").removeClass("selected");
+         $(this.element).find(".cut").addClass("selected");
        }
      } );
    },
@@ -147,8 +176,10 @@ $(document).ready(function(){
        }
      });
    },
-   _refresh: function() {
+   refresh: function() {
+     this.selected = null;
      $('.legend').empty();
+     $(this.element).append($("<button></button>").text("cutoff").addClass("cut"));
      for (color in this.options.colors) {
        this._displayNew(color,this.options.colors[color]);
      }
@@ -194,11 +225,13 @@ $(document).ready(function(){
      month : (new Date()).getMonth(),
      mos : ['January','February','March','April','May','June','July','August','September','October','November','December'],
      day : ['Sun', 'Mon', 'Tue', 'Wed' , 'Thu', 'Fri', 'Sat'],
+     cutoff : dateToInd(new Date())-1,
+     cutcolor : 'red',
      legendRef : $(".legend")
    },
    _create : function() {
      this.element.addClass("acalendar");
-     this._refresh();
+     this.refresh();
 
      this._on({
        "click .prevy" : function() {
@@ -237,7 +270,11 @@ $(document).ready(function(){
          var curr = new Date(this.options.year, this.options.month, parseInt($(event.target).text()));
 
          if (this.options.legendRef.legend("option","selected") != null) {
-           if (this.options.times[dateToInd(curr)] == null) {
+           if (this.options.legendRef.legend("option","selected") == "cutoff") {
+             this.options.cutoff = dateToInd(curr);
+             $(this.element).find(".cellcut").removeClass("cellcut").css('border-color','');
+             $(event.target).addClass("cellcut").css('border-color',this.options.cutcolor);
+           } else if (this.options.times[dateToInd(curr)] == null) {
              this.options.times[dateToInd(curr)] = this.options.legendRef.legend("option","selected");
              $(event.target).addClass("cell-"+this.options.legendRef.legend("option","selected"));
              $(event.target).css('background-color',this.options.legendRef.legend("option","colors")[this.options.legendRef.legend("option","selected")]);
@@ -250,7 +287,7 @@ $(document).ready(function(){
        }
      })
    },
-   _refresh : function() {
+   refresh : function() {
      $(this.element).empty();
 
      $(this.element).append($("<button></button>").addClass("prevy").text("<<"));
@@ -289,6 +326,9 @@ $(document).ready(function(){
            if (this.options.times[dateToInd(new Date(this.options.year,this.options.month,dayCount))] != null) {
              newButt.addClass("cell-"+this.options.times[dateToInd(new Date(this.options.year,this.options.month,dayCount))])
                 .css('background-color',this.options.legendRef.legend('option','colors')[this.options.times[dateToInd(new Date(this.options.year,this.options.month,dayCount))]]);
+           }
+           if(this.options.cutoff == dateToInd(new Date(this.options.year,this.options.month,dayCount))) {
+             newButt.addClass("cellcut").css('border-color',this.options.cutcolor);
            }
            newRow.append($("<td></td>").append(newButt));
 
@@ -362,15 +402,29 @@ $(document).ready(function(){
 
   updateResults();
 
+  $(document).tooltip();
 });
 
 function updateResults() {
   init.dates = $("#test2").acalendar('option','times');
-  past = generate(init,past,filter);
+  init.cutoff = $("#test2").acalendar('option','cutoff');
+  console.log(init.cutoff);
+  init.colors = $("#test").legend('option','colors');
+  past = generate(init,past);
   console.log(past);
 
   displayResults();
   chartIt();
+}
+
+function reverseUpdate() {
+  $("#test2").acalendar({cutoff : init.cutoff, times : init.dates})
+  $("#test").legend({colors: init.colors});
+  $("#test2").acalendar("refresh");
+  $("#test").legend("refresh");
+  loadCategories();
+  $("#rise").val(init.rise);
+  $("#decay").val(init.decay);
 }
 
 function displayResults() {
@@ -390,7 +444,7 @@ function chartIt() {
     var trac = {
       x: aside.map(function (k) {
         var temp = indToDate(k);
-        return temp.getFullYear()+'-'+(temp.getMonth()+1)+'-'+temp.getDate();
+        return temp.getFullYear()+'-'+(temp.getMonth()+1)+'-'+(temp.getDate()+1);
       }),
       y: aside.map(function (k) {
         return past[category][k][0];

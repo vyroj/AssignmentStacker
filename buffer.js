@@ -1,9 +1,9 @@
-var filter = {
+
+var init = {
+  colors:{},
   cutoff: 0,
   rise: .05,
-  decay: .05
-}
-var init = {
+  decay: .05,
   categories : {
     default : [1,1]
   },
@@ -50,8 +50,8 @@ function filtercut(past,filter) {
   return database;
 }
 
-function generate(init,past,filter) {
-  var database = filtercut(past,filter);
+function generate(init,past) {
+  var database = filtercut(past,init);
 
   var datekeys = Object.keys(init.dates);
 
@@ -60,7 +60,7 @@ function generate(init,past,filter) {
 
     for (category in init.categories) {
 
-      if (datekeys[i] > filter.cutoff && datekeys[i] >= init.categories[category][0]) {
+      if (datekeys[i] > init.cutoff && datekeys[i] >= init.categories[category][0]) {
         try {
           var basekeys = Object.keys(database[category]);
 
@@ -97,7 +97,7 @@ function generate(init,past,filter) {
           database[category][datekeys[i]][0] *= init.dates[datekeys[i]]/total;
 
           //calculate m
-          database[category][datekeys[i]][1] += filter.rise*database[category][datekeys[i]][0]*(1-Math.exp((prevdate-datekeys[i])/(1+prevstrength))) - filter.decay*(datekeys[i]-altdate);
+          database[category][datekeys[i]][1] += init.rise*database[category][datekeys[i]][0]*(1-Math.exp((prevdate-datekeys[i])/(1+prevstrength))) - init.decay*(datekeys[i]-altdate);
           if (database[category][datekeys[i]][1] < 0 ) {
             database[category][datekeys[i]][1] = 0;
           }

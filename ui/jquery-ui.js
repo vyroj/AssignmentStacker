@@ -1,6 +1,6 @@
-/*! jQuery UI - v1.12.1 - 2018-11-27
+/*! jQuery UI - v1.12.1 - 2018-12-16
 * http://jqueryui.com
-* Includes: widget.js, position.js, data.js, disable-selection.js, focusable.js, form-reset-mixin.js, jquery-1-7.js, keycode.js, labels.js, scroll-parent.js, tabbable.js, unique-id.js, widgets/selectable.js, widgets/sortable.js, widgets/accordion.js, widgets/controlgroup.js, widgets/datepicker.js, widgets/menu.js, widgets/mouse.js, widgets/selectmenu.js, widgets/slider.js, widgets/tabs.js, widgets/tooltip.js
+* Includes: widget.js, position.js, data.js, disable-selection.js, focusable.js, form-reset-mixin.js, jquery-1-7.js, keycode.js, labels.js, scroll-parent.js, tabbable.js, unique-id.js, widgets/sortable.js, widgets/accordion.js, widgets/button.js, widgets/checkboxradio.js, widgets/controlgroup.js, widgets/datepicker.js, widgets/mouse.js, widgets/slider.js, widgets/tabs.js
 * Copyright jQuery Foundation and other contributors; Licensed MIT */
 
 (function( factory ) {
@@ -1932,301 +1932,6 @@ var widgetsMouse = $.widget( "ui.mouse", {
 	_mouseDrag: function( /* event */ ) {},
 	_mouseStop: function( /* event */ ) {},
 	_mouseCapture: function( /* event */ ) { return true; }
-} );
-
-
-/*!
- * jQuery UI Selectable 1.12.1
- * http://jqueryui.com
- *
- * Copyright jQuery Foundation and other contributors
- * Released under the MIT license.
- * http://jquery.org/license
- */
-
-//>>label: Selectable
-//>>group: Interactions
-//>>description: Allows groups of elements to be selected with the mouse.
-//>>docs: http://api.jqueryui.com/selectable/
-//>>demos: http://jqueryui.com/selectable/
-//>>css.structure: ../../themes/base/selectable.css
-
-
-
-var widgetsSelectable = $.widget( "ui.selectable", $.ui.mouse, {
-	version: "1.12.1",
-	options: {
-		appendTo: "body",
-		autoRefresh: true,
-		distance: 0,
-		filter: "*",
-		tolerance: "touch",
-
-		// Callbacks
-		selected: null,
-		selecting: null,
-		start: null,
-		stop: null,
-		unselected: null,
-		unselecting: null
-	},
-	_create: function() {
-		var that = this;
-
-		this._addClass( "ui-selectable" );
-
-		this.dragged = false;
-
-		// Cache selectee children based on filter
-		this.refresh = function() {
-			that.elementPos = $( that.element[ 0 ] ).offset();
-			that.selectees = $( that.options.filter, that.element[ 0 ] );
-			that._addClass( that.selectees, "ui-selectee" );
-			that.selectees.each( function() {
-				var $this = $( this ),
-					selecteeOffset = $this.offset(),
-					pos = {
-						left: selecteeOffset.left - that.elementPos.left,
-						top: selecteeOffset.top - that.elementPos.top
-					};
-				$.data( this, "selectable-item", {
-					element: this,
-					$element: $this,
-					left: pos.left,
-					top: pos.top,
-					right: pos.left + $this.outerWidth(),
-					bottom: pos.top + $this.outerHeight(),
-					startselected: false,
-					selected: $this.hasClass( "ui-selected" ),
-					selecting: $this.hasClass( "ui-selecting" ),
-					unselecting: $this.hasClass( "ui-unselecting" )
-				} );
-			} );
-		};
-		this.refresh();
-
-		this._mouseInit();
-
-		this.helper = $( "<div>" );
-		this._addClass( this.helper, "ui-selectable-helper" );
-	},
-
-	_destroy: function() {
-		this.selectees.removeData( "selectable-item" );
-		this._mouseDestroy();
-	},
-
-	_mouseStart: function( event ) {
-		var that = this,
-			options = this.options;
-
-		this.opos = [ event.pageX, event.pageY ];
-		this.elementPos = $( this.element[ 0 ] ).offset();
-
-		if ( this.options.disabled ) {
-			return;
-		}
-
-		this.selectees = $( options.filter, this.element[ 0 ] );
-
-		this._trigger( "start", event );
-
-		$( options.appendTo ).append( this.helper );
-
-		// position helper (lasso)
-		this.helper.css( {
-			"left": event.pageX,
-			"top": event.pageY,
-			"width": 0,
-			"height": 0
-		} );
-
-		if ( options.autoRefresh ) {
-			this.refresh();
-		}
-
-		this.selectees.filter( ".ui-selected" ).each( function() {
-			var selectee = $.data( this, "selectable-item" );
-			selectee.startselected = true;
-			if ( !event.metaKey && !event.ctrlKey ) {
-				that._removeClass( selectee.$element, "ui-selected" );
-				selectee.selected = false;
-				that._addClass( selectee.$element, "ui-unselecting" );
-				selectee.unselecting = true;
-
-				// selectable UNSELECTING callback
-				that._trigger( "unselecting", event, {
-					unselecting: selectee.element
-				} );
-			}
-		} );
-
-		$( event.target ).parents().addBack().each( function() {
-			var doSelect,
-				selectee = $.data( this, "selectable-item" );
-			if ( selectee ) {
-				doSelect = ( !event.metaKey && !event.ctrlKey ) ||
-					!selectee.$element.hasClass( "ui-selected" );
-				that._removeClass( selectee.$element, doSelect ? "ui-unselecting" : "ui-selected" )
-					._addClass( selectee.$element, doSelect ? "ui-selecting" : "ui-unselecting" );
-				selectee.unselecting = !doSelect;
-				selectee.selecting = doSelect;
-				selectee.selected = doSelect;
-
-				// selectable (UN)SELECTING callback
-				if ( doSelect ) {
-					that._trigger( "selecting", event, {
-						selecting: selectee.element
-					} );
-				} else {
-					that._trigger( "unselecting", event, {
-						unselecting: selectee.element
-					} );
-				}
-				return false;
-			}
-		} );
-
-	},
-
-	_mouseDrag: function( event ) {
-
-		this.dragged = true;
-
-		if ( this.options.disabled ) {
-			return;
-		}
-
-		var tmp,
-			that = this,
-			options = this.options,
-			x1 = this.opos[ 0 ],
-			y1 = this.opos[ 1 ],
-			x2 = event.pageX,
-			y2 = event.pageY;
-
-		if ( x1 > x2 ) { tmp = x2; x2 = x1; x1 = tmp; }
-		if ( y1 > y2 ) { tmp = y2; y2 = y1; y1 = tmp; }
-		this.helper.css( { left: x1, top: y1, width: x2 - x1, height: y2 - y1 } );
-
-		this.selectees.each( function() {
-			var selectee = $.data( this, "selectable-item" ),
-				hit = false,
-				offset = {};
-
-			//prevent helper from being selected if appendTo: selectable
-			if ( !selectee || selectee.element === that.element[ 0 ] ) {
-				return;
-			}
-
-			offset.left   = selectee.left   + that.elementPos.left;
-			offset.right  = selectee.right  + that.elementPos.left;
-			offset.top    = selectee.top    + that.elementPos.top;
-			offset.bottom = selectee.bottom + that.elementPos.top;
-
-			if ( options.tolerance === "touch" ) {
-				hit = ( !( offset.left > x2 || offset.right < x1 || offset.top > y2 ||
-                    offset.bottom < y1 ) );
-			} else if ( options.tolerance === "fit" ) {
-				hit = ( offset.left > x1 && offset.right < x2 && offset.top > y1 &&
-                    offset.bottom < y2 );
-			}
-
-			if ( hit ) {
-
-				// SELECT
-				if ( selectee.selected ) {
-					that._removeClass( selectee.$element, "ui-selected" );
-					selectee.selected = false;
-				}
-				if ( selectee.unselecting ) {
-					that._removeClass( selectee.$element, "ui-unselecting" );
-					selectee.unselecting = false;
-				}
-				if ( !selectee.selecting ) {
-					that._addClass( selectee.$element, "ui-selecting" );
-					selectee.selecting = true;
-
-					// selectable SELECTING callback
-					that._trigger( "selecting", event, {
-						selecting: selectee.element
-					} );
-				}
-			} else {
-
-				// UNSELECT
-				if ( selectee.selecting ) {
-					if ( ( event.metaKey || event.ctrlKey ) && selectee.startselected ) {
-						that._removeClass( selectee.$element, "ui-selecting" );
-						selectee.selecting = false;
-						that._addClass( selectee.$element, "ui-selected" );
-						selectee.selected = true;
-					} else {
-						that._removeClass( selectee.$element, "ui-selecting" );
-						selectee.selecting = false;
-						if ( selectee.startselected ) {
-							that._addClass( selectee.$element, "ui-unselecting" );
-							selectee.unselecting = true;
-						}
-
-						// selectable UNSELECTING callback
-						that._trigger( "unselecting", event, {
-							unselecting: selectee.element
-						} );
-					}
-				}
-				if ( selectee.selected ) {
-					if ( !event.metaKey && !event.ctrlKey && !selectee.startselected ) {
-						that._removeClass( selectee.$element, "ui-selected" );
-						selectee.selected = false;
-
-						that._addClass( selectee.$element, "ui-unselecting" );
-						selectee.unselecting = true;
-
-						// selectable UNSELECTING callback
-						that._trigger( "unselecting", event, {
-							unselecting: selectee.element
-						} );
-					}
-				}
-			}
-		} );
-
-		return false;
-	},
-
-	_mouseStop: function( event ) {
-		var that = this;
-
-		this.dragged = false;
-
-		$( ".ui-unselecting", this.element[ 0 ] ).each( function() {
-			var selectee = $.data( this, "selectable-item" );
-			that._removeClass( selectee.$element, "ui-unselecting" );
-			selectee.unselecting = false;
-			selectee.startselected = false;
-			that._trigger( "unselected", event, {
-				unselected: selectee.element
-			} );
-		} );
-		$( ".ui-selecting", this.element[ 0 ] ).each( function() {
-			var selectee = $.data( this, "selectable-item" );
-			that._removeClass( selectee.$element, "ui-selecting" )
-				._addClass( selectee.$element, "ui-selected" );
-			selectee.selecting = false;
-			selectee.selected = true;
-			selectee.startselected = true;
-			that._trigger( "selected", event, {
-				selected: selectee.element
-			} );
-		} );
-		this._trigger( "stop", event );
-
-		this.helper.remove();
-
-		return false;
-	}
-
 } );
 
 
@@ -4648,6 +4353,642 @@ var widgetsControlgroup = $.widget( "ui.controlgroup", {
 	}
 } );
 
+/*!
+ * jQuery UI Checkboxradio 1.12.1
+ * http://jqueryui.com
+ *
+ * Copyright jQuery Foundation and other contributors
+ * Released under the MIT license.
+ * http://jquery.org/license
+ */
+
+//>>label: Checkboxradio
+//>>group: Widgets
+//>>description: Enhances a form with multiple themeable checkboxes or radio buttons.
+//>>docs: http://api.jqueryui.com/checkboxradio/
+//>>demos: http://jqueryui.com/checkboxradio/
+//>>css.structure: ../../themes/base/core.css
+//>>css.structure: ../../themes/base/button.css
+//>>css.structure: ../../themes/base/checkboxradio.css
+//>>css.theme: ../../themes/base/theme.css
+
+
+
+$.widget( "ui.checkboxradio", [ $.ui.formResetMixin, {
+	version: "1.12.1",
+	options: {
+		disabled: null,
+		label: null,
+		icon: true,
+		classes: {
+			"ui-checkboxradio-label": "ui-corner-all",
+			"ui-checkboxradio-icon": "ui-corner-all"
+		}
+	},
+
+	_getCreateOptions: function() {
+		var disabled, labels;
+		var that = this;
+		var options = this._super() || {};
+
+		// We read the type here, because it makes more sense to throw a element type error first,
+		// rather then the error for lack of a label. Often if its the wrong type, it
+		// won't have a label (e.g. calling on a div, btn, etc)
+		this._readType();
+
+		labels = this.element.labels();
+
+		// If there are multiple labels, use the last one
+		this.label = $( labels[ labels.length - 1 ] );
+		if ( !this.label.length ) {
+			$.error( "No label found for checkboxradio widget" );
+		}
+
+		this.originalLabel = "";
+
+		// We need to get the label text but this may also need to make sure it does not contain the
+		// input itself.
+		this.label.contents().not( this.element[ 0 ] ).each( function() {
+
+			// The label contents could be text, html, or a mix. We concat each element to get a
+			// string representation of the label, without the input as part of it.
+			that.originalLabel += this.nodeType === 3 ? $( this ).text() : this.outerHTML;
+		} );
+
+		// Set the label option if we found label text
+		if ( this.originalLabel ) {
+			options.label = this.originalLabel;
+		}
+
+		disabled = this.element[ 0 ].disabled;
+		if ( disabled != null ) {
+			options.disabled = disabled;
+		}
+		return options;
+	},
+
+	_create: function() {
+		var checked = this.element[ 0 ].checked;
+
+		this._bindFormResetHandler();
+
+		if ( this.options.disabled == null ) {
+			this.options.disabled = this.element[ 0 ].disabled;
+		}
+
+		this._setOption( "disabled", this.options.disabled );
+		this._addClass( "ui-checkboxradio", "ui-helper-hidden-accessible" );
+		this._addClass( this.label, "ui-checkboxradio-label", "ui-button ui-widget" );
+
+		if ( this.type === "radio" ) {
+			this._addClass( this.label, "ui-checkboxradio-radio-label" );
+		}
+
+		if ( this.options.label && this.options.label !== this.originalLabel ) {
+			this._updateLabel();
+		} else if ( this.originalLabel ) {
+			this.options.label = this.originalLabel;
+		}
+
+		this._enhance();
+
+		if ( checked ) {
+			this._addClass( this.label, "ui-checkboxradio-checked", "ui-state-active" );
+			if ( this.icon ) {
+				this._addClass( this.icon, null, "ui-state-hover" );
+			}
+		}
+
+		this._on( {
+			change: "_toggleClasses",
+			focus: function() {
+				this._addClass( this.label, null, "ui-state-focus ui-visual-focus" );
+			},
+			blur: function() {
+				this._removeClass( this.label, null, "ui-state-focus ui-visual-focus" );
+			}
+		} );
+	},
+
+	_readType: function() {
+		var nodeName = this.element[ 0 ].nodeName.toLowerCase();
+		this.type = this.element[ 0 ].type;
+		if ( nodeName !== "input" || !/radio|checkbox/.test( this.type ) ) {
+			$.error( "Can't create checkboxradio on element.nodeName=" + nodeName +
+				" and element.type=" + this.type );
+		}
+	},
+
+	// Support jQuery Mobile enhanced option
+	_enhance: function() {
+		this._updateIcon( this.element[ 0 ].checked );
+	},
+
+	widget: function() {
+		return this.label;
+	},
+
+	_getRadioGroup: function() {
+		var group;
+		var name = this.element[ 0 ].name;
+		var nameSelector = "input[name='" + $.ui.escapeSelector( name ) + "']";
+
+		if ( !name ) {
+			return $( [] );
+		}
+
+		if ( this.form.length ) {
+			group = $( this.form[ 0 ].elements ).filter( nameSelector );
+		} else {
+
+			// Not inside a form, check all inputs that also are not inside a form
+			group = $( nameSelector ).filter( function() {
+				return $( this ).form().length === 0;
+			} );
+		}
+
+		return group.not( this.element );
+	},
+
+	_toggleClasses: function() {
+		var checked = this.element[ 0 ].checked;
+		this._toggleClass( this.label, "ui-checkboxradio-checked", "ui-state-active", checked );
+
+		if ( this.options.icon && this.type === "checkbox" ) {
+			this._toggleClass( this.icon, null, "ui-icon-check ui-state-checked", checked )
+				._toggleClass( this.icon, null, "ui-icon-blank", !checked );
+		}
+
+		if ( this.type === "radio" ) {
+			this._getRadioGroup()
+				.each( function() {
+					var instance = $( this ).checkboxradio( "instance" );
+
+					if ( instance ) {
+						instance._removeClass( instance.label,
+							"ui-checkboxradio-checked", "ui-state-active" );
+					}
+				} );
+		}
+	},
+
+	_destroy: function() {
+		this._unbindFormResetHandler();
+
+		if ( this.icon ) {
+			this.icon.remove();
+			this.iconSpace.remove();
+		}
+	},
+
+	_setOption: function( key, value ) {
+
+		// We don't allow the value to be set to nothing
+		if ( key === "label" && !value ) {
+			return;
+		}
+
+		this._super( key, value );
+
+		if ( key === "disabled" ) {
+			this._toggleClass( this.label, null, "ui-state-disabled", value );
+			this.element[ 0 ].disabled = value;
+
+			// Don't refresh when setting disabled
+			return;
+		}
+		this.refresh();
+	},
+
+	_updateIcon: function( checked ) {
+		var toAdd = "ui-icon ui-icon-background ";
+
+		if ( this.options.icon ) {
+			if ( !this.icon ) {
+				this.icon = $( "<span>" );
+				this.iconSpace = $( "<span> </span>" );
+				this._addClass( this.iconSpace, "ui-checkboxradio-icon-space" );
+			}
+
+			if ( this.type === "checkbox" ) {
+				toAdd += checked ? "ui-icon-check ui-state-checked" : "ui-icon-blank";
+				this._removeClass( this.icon, null, checked ? "ui-icon-blank" : "ui-icon-check" );
+			} else {
+				toAdd += "ui-icon-blank";
+			}
+			this._addClass( this.icon, "ui-checkboxradio-icon", toAdd );
+			if ( !checked ) {
+				this._removeClass( this.icon, null, "ui-icon-check ui-state-checked" );
+			}
+			this.icon.prependTo( this.label ).after( this.iconSpace );
+		} else if ( this.icon !== undefined ) {
+			this.icon.remove();
+			this.iconSpace.remove();
+			delete this.icon;
+		}
+	},
+
+	_updateLabel: function() {
+
+		// Remove the contents of the label ( minus the icon, icon space, and input )
+		var contents = this.label.contents().not( this.element[ 0 ] );
+		if ( this.icon ) {
+			contents = contents.not( this.icon[ 0 ] );
+		}
+		if ( this.iconSpace ) {
+			contents = contents.not( this.iconSpace[ 0 ] );
+		}
+		contents.remove();
+
+		this.label.append( this.options.label );
+	},
+
+	refresh: function() {
+		var checked = this.element[ 0 ].checked,
+			isDisabled = this.element[ 0 ].disabled;
+
+		this._updateIcon( checked );
+		this._toggleClass( this.label, "ui-checkboxradio-checked", "ui-state-active", checked );
+		if ( this.options.label !== null ) {
+			this._updateLabel();
+		}
+
+		if ( isDisabled !== this.options.disabled ) {
+			this._setOptions( { "disabled": isDisabled } );
+		}
+	}
+
+} ] );
+
+var widgetsCheckboxradio = $.ui.checkboxradio;
+
+
+/*!
+ * jQuery UI Button 1.12.1
+ * http://jqueryui.com
+ *
+ * Copyright jQuery Foundation and other contributors
+ * Released under the MIT license.
+ * http://jquery.org/license
+ */
+
+//>>label: Button
+//>>group: Widgets
+//>>description: Enhances a form with themeable buttons.
+//>>docs: http://api.jqueryui.com/button/
+//>>demos: http://jqueryui.com/button/
+//>>css.structure: ../../themes/base/core.css
+//>>css.structure: ../../themes/base/button.css
+//>>css.theme: ../../themes/base/theme.css
+
+
+
+$.widget( "ui.button", {
+	version: "1.12.1",
+	defaultElement: "<button>",
+	options: {
+		classes: {
+			"ui-button": "ui-corner-all"
+		},
+		disabled: null,
+		icon: null,
+		iconPosition: "beginning",
+		label: null,
+		showLabel: true
+	},
+
+	_getCreateOptions: function() {
+		var disabled,
+
+			// This is to support cases like in jQuery Mobile where the base widget does have
+			// an implementation of _getCreateOptions
+			options = this._super() || {};
+
+		this.isInput = this.element.is( "input" );
+
+		disabled = this.element[ 0 ].disabled;
+		if ( disabled != null ) {
+			options.disabled = disabled;
+		}
+
+		this.originalLabel = this.isInput ? this.element.val() : this.element.html();
+		if ( this.originalLabel ) {
+			options.label = this.originalLabel;
+		}
+
+		return options;
+	},
+
+	_create: function() {
+		if ( !this.option.showLabel & !this.options.icon ) {
+			this.options.showLabel = true;
+		}
+
+		// We have to check the option again here even though we did in _getCreateOptions,
+		// because null may have been passed on init which would override what was set in
+		// _getCreateOptions
+		if ( this.options.disabled == null ) {
+			this.options.disabled = this.element[ 0 ].disabled || false;
+		}
+
+		this.hasTitle = !!this.element.attr( "title" );
+
+		// Check to see if the label needs to be set or if its already correct
+		if ( this.options.label && this.options.label !== this.originalLabel ) {
+			if ( this.isInput ) {
+				this.element.val( this.options.label );
+			} else {
+				this.element.html( this.options.label );
+			}
+		}
+		this._addClass( "ui-button", "ui-widget" );
+		this._setOption( "disabled", this.options.disabled );
+		this._enhance();
+
+		if ( this.element.is( "a" ) ) {
+			this._on( {
+				"keyup": function( event ) {
+					if ( event.keyCode === $.ui.keyCode.SPACE ) {
+						event.preventDefault();
+
+						// Support: PhantomJS <= 1.9, IE 8 Only
+						// If a native click is available use it so we actually cause navigation
+						// otherwise just trigger a click event
+						if ( this.element[ 0 ].click ) {
+							this.element[ 0 ].click();
+						} else {
+							this.element.trigger( "click" );
+						}
+					}
+				}
+			} );
+		}
+	},
+
+	_enhance: function() {
+		if ( !this.element.is( "button" ) ) {
+			this.element.attr( "role", "button" );
+		}
+
+		if ( this.options.icon ) {
+			this._updateIcon( "icon", this.options.icon );
+			this._updateTooltip();
+		}
+	},
+
+	_updateTooltip: function() {
+		this.title = this.element.attr( "title" );
+
+		if ( !this.options.showLabel && !this.title ) {
+			this.element.attr( "title", this.options.label );
+		}
+	},
+
+	_updateIcon: function( option, value ) {
+		var icon = option !== "iconPosition",
+			position = icon ? this.options.iconPosition : value,
+			displayBlock = position === "top" || position === "bottom";
+
+		// Create icon
+		if ( !this.icon ) {
+			this.icon = $( "<span>" );
+
+			this._addClass( this.icon, "ui-button-icon", "ui-icon" );
+
+			if ( !this.options.showLabel ) {
+				this._addClass( "ui-button-icon-only" );
+			}
+		} else if ( icon ) {
+
+			// If we are updating the icon remove the old icon class
+			this._removeClass( this.icon, null, this.options.icon );
+		}
+
+		// If we are updating the icon add the new icon class
+		if ( icon ) {
+			this._addClass( this.icon, null, value );
+		}
+
+		this._attachIcon( position );
+
+		// If the icon is on top or bottom we need to add the ui-widget-icon-block class and remove
+		// the iconSpace if there is one.
+		if ( displayBlock ) {
+			this._addClass( this.icon, null, "ui-widget-icon-block" );
+			if ( this.iconSpace ) {
+				this.iconSpace.remove();
+			}
+		} else {
+
+			// Position is beginning or end so remove the ui-widget-icon-block class and add the
+			// space if it does not exist
+			if ( !this.iconSpace ) {
+				this.iconSpace = $( "<span> </span>" );
+				this._addClass( this.iconSpace, "ui-button-icon-space" );
+			}
+			this._removeClass( this.icon, null, "ui-wiget-icon-block" );
+			this._attachIconSpace( position );
+		}
+	},
+
+	_destroy: function() {
+		this.element.removeAttr( "role" );
+
+		if ( this.icon ) {
+			this.icon.remove();
+		}
+		if ( this.iconSpace ) {
+			this.iconSpace.remove();
+		}
+		if ( !this.hasTitle ) {
+			this.element.removeAttr( "title" );
+		}
+	},
+
+	_attachIconSpace: function( iconPosition ) {
+		this.icon[ /^(?:end|bottom)/.test( iconPosition ) ? "before" : "after" ]( this.iconSpace );
+	},
+
+	_attachIcon: function( iconPosition ) {
+		this.element[ /^(?:end|bottom)/.test( iconPosition ) ? "append" : "prepend" ]( this.icon );
+	},
+
+	_setOptions: function( options ) {
+		var newShowLabel = options.showLabel === undefined ?
+				this.options.showLabel :
+				options.showLabel,
+			newIcon = options.icon === undefined ? this.options.icon : options.icon;
+
+		if ( !newShowLabel && !newIcon ) {
+			options.showLabel = true;
+		}
+		this._super( options );
+	},
+
+	_setOption: function( key, value ) {
+		if ( key === "icon" ) {
+			if ( value ) {
+				this._updateIcon( key, value );
+			} else if ( this.icon ) {
+				this.icon.remove();
+				if ( this.iconSpace ) {
+					this.iconSpace.remove();
+				}
+			}
+		}
+
+		if ( key === "iconPosition" ) {
+			this._updateIcon( key, value );
+		}
+
+		// Make sure we can't end up with a button that has neither text nor icon
+		if ( key === "showLabel" ) {
+				this._toggleClass( "ui-button-icon-only", null, !value );
+				this._updateTooltip();
+		}
+
+		if ( key === "label" ) {
+			if ( this.isInput ) {
+				this.element.val( value );
+			} else {
+
+				// If there is an icon, append it, else nothing then append the value
+				// this avoids removal of the icon when setting label text
+				this.element.html( value );
+				if ( this.icon ) {
+					this._attachIcon( this.options.iconPosition );
+					this._attachIconSpace( this.options.iconPosition );
+				}
+			}
+		}
+
+		this._super( key, value );
+
+		if ( key === "disabled" ) {
+			this._toggleClass( null, "ui-state-disabled", value );
+			this.element[ 0 ].disabled = value;
+			if ( value ) {
+				this.element.blur();
+			}
+		}
+	},
+
+	refresh: function() {
+
+		// Make sure to only check disabled if its an element that supports this otherwise
+		// check for the disabled class to determine state
+		var isDisabled = this.element.is( "input, button" ) ?
+			this.element[ 0 ].disabled : this.element.hasClass( "ui-button-disabled" );
+
+		if ( isDisabled !== this.options.disabled ) {
+			this._setOptions( { disabled: isDisabled } );
+		}
+
+		this._updateTooltip();
+	}
+} );
+
+// DEPRECATED
+if ( $.uiBackCompat !== false ) {
+
+	// Text and Icons options
+	$.widget( "ui.button", $.ui.button, {
+		options: {
+			text: true,
+			icons: {
+				primary: null,
+				secondary: null
+			}
+		},
+
+		_create: function() {
+			if ( this.options.showLabel && !this.options.text ) {
+				this.options.showLabel = this.options.text;
+			}
+			if ( !this.options.showLabel && this.options.text ) {
+				this.options.text = this.options.showLabel;
+			}
+			if ( !this.options.icon && ( this.options.icons.primary ||
+					this.options.icons.secondary ) ) {
+				if ( this.options.icons.primary ) {
+					this.options.icon = this.options.icons.primary;
+				} else {
+					this.options.icon = this.options.icons.secondary;
+					this.options.iconPosition = "end";
+				}
+			} else if ( this.options.icon ) {
+				this.options.icons.primary = this.options.icon;
+			}
+			this._super();
+		},
+
+		_setOption: function( key, value ) {
+			if ( key === "text" ) {
+				this._super( "showLabel", value );
+				return;
+			}
+			if ( key === "showLabel" ) {
+				this.options.text = value;
+			}
+			if ( key === "icon" ) {
+				this.options.icons.primary = value;
+			}
+			if ( key === "icons" ) {
+				if ( value.primary ) {
+					this._super( "icon", value.primary );
+					this._super( "iconPosition", "beginning" );
+				} else if ( value.secondary ) {
+					this._super( "icon", value.secondary );
+					this._super( "iconPosition", "end" );
+				}
+			}
+			this._superApply( arguments );
+		}
+	} );
+
+	$.fn.button = ( function( orig ) {
+		return function() {
+			if ( !this.length || ( this.length && this[ 0 ].tagName !== "INPUT" ) ||
+					( this.length && this[ 0 ].tagName === "INPUT" && (
+						this.attr( "type" ) !== "checkbox" && this.attr( "type" ) !== "radio"
+					) ) ) {
+				return orig.apply( this, arguments );
+			}
+			if ( !$.ui.checkboxradio ) {
+				$.error( "Checkboxradio widget missing" );
+			}
+			if ( arguments.length === 0 ) {
+				return this.checkboxradio( {
+					"icon": false
+				} );
+			}
+			return this.checkboxradio.apply( this, arguments );
+		};
+	} )( $.fn.button );
+
+	$.fn.buttonset = function() {
+		if ( !$.ui.controlgroup ) {
+			$.error( "Controlgroup widget missing" );
+		}
+		if ( arguments[ 0 ] === "option" && arguments[ 1 ] === "items" && arguments[ 2 ] ) {
+			return this.controlgroup.apply( this,
+				[ arguments[ 0 ], "items.button", arguments[ 2 ] ] );
+		}
+		if ( arguments[ 0 ] === "option" && arguments[ 1 ] === "items" ) {
+			return this.controlgroup.apply( this, [ arguments[ 0 ], "items.button" ] );
+		}
+		if ( typeof arguments[ 0 ] === "object" && arguments[ 0 ].items ) {
+			arguments[ 0 ].items = {
+				button: arguments[ 0 ].items
+			};
+		}
+		return this.controlgroup.apply( this, arguments );
+	};
+}
+
+var widgetsButton = $.ui.button;
+
+
 // jscs:disable maximumLineLength
 /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
 /*!
@@ -6754,1357 +7095,6 @@ $.datepicker.version = "1.12.1";
 var widgetsDatepicker = $.datepicker;
 
 
-
-var safeActiveElement = $.ui.safeActiveElement = function( document ) {
-	var activeElement;
-
-	// Support: IE 9 only
-	// IE9 throws an "Unspecified error" accessing document.activeElement from an <iframe>
-	try {
-		activeElement = document.activeElement;
-	} catch ( error ) {
-		activeElement = document.body;
-	}
-
-	// Support: IE 9 - 11 only
-	// IE may return null instead of an element
-	// Interestingly, this only seems to occur when NOT in an iframe
-	if ( !activeElement ) {
-		activeElement = document.body;
-	}
-
-	// Support: IE 11 only
-	// IE11 returns a seemingly empty object in some cases when accessing
-	// document.activeElement from an <iframe>
-	if ( !activeElement.nodeName ) {
-		activeElement = document.body;
-	}
-
-	return activeElement;
-};
-
-
-/*!
- * jQuery UI Menu 1.12.1
- * http://jqueryui.com
- *
- * Copyright jQuery Foundation and other contributors
- * Released under the MIT license.
- * http://jquery.org/license
- */
-
-//>>label: Menu
-//>>group: Widgets
-//>>description: Creates nestable menus.
-//>>docs: http://api.jqueryui.com/menu/
-//>>demos: http://jqueryui.com/menu/
-//>>css.structure: ../../themes/base/core.css
-//>>css.structure: ../../themes/base/menu.css
-//>>css.theme: ../../themes/base/theme.css
-
-
-
-var widgetsMenu = $.widget( "ui.menu", {
-	version: "1.12.1",
-	defaultElement: "<ul>",
-	delay: 300,
-	options: {
-		icons: {
-			submenu: "ui-icon-caret-1-e"
-		},
-		items: "> *",
-		menus: "ul",
-		position: {
-			my: "left top",
-			at: "right top"
-		},
-		role: "menu",
-
-		// Callbacks
-		blur: null,
-		focus: null,
-		select: null
-	},
-
-	_create: function() {
-		this.activeMenu = this.element;
-
-		// Flag used to prevent firing of the click handler
-		// as the event bubbles up through nested menus
-		this.mouseHandled = false;
-		this.element
-			.uniqueId()
-			.attr( {
-				role: this.options.role,
-				tabIndex: 0
-			} );
-
-		this._addClass( "ui-menu", "ui-widget ui-widget-content" );
-		this._on( {
-
-			// Prevent focus from sticking to links inside menu after clicking
-			// them (focus should always stay on UL during navigation).
-			"mousedown .ui-menu-item": function( event ) {
-				event.preventDefault();
-			},
-			"click .ui-menu-item": function( event ) {
-				var target = $( event.target );
-				var active = $( $.ui.safeActiveElement( this.document[ 0 ] ) );
-				if ( !this.mouseHandled && target.not( ".ui-state-disabled" ).length ) {
-					this.select( event );
-
-					// Only set the mouseHandled flag if the event will bubble, see #9469.
-					if ( !event.isPropagationStopped() ) {
-						this.mouseHandled = true;
-					}
-
-					// Open submenu on click
-					if ( target.has( ".ui-menu" ).length ) {
-						this.expand( event );
-					} else if ( !this.element.is( ":focus" ) &&
-							active.closest( ".ui-menu" ).length ) {
-
-						// Redirect focus to the menu
-						this.element.trigger( "focus", [ true ] );
-
-						// If the active item is on the top level, let it stay active.
-						// Otherwise, blur the active item since it is no longer visible.
-						if ( this.active && this.active.parents( ".ui-menu" ).length === 1 ) {
-							clearTimeout( this.timer );
-						}
-					}
-				}
-			},
-			"mouseenter .ui-menu-item": function( event ) {
-
-				// Ignore mouse events while typeahead is active, see #10458.
-				// Prevents focusing the wrong item when typeahead causes a scroll while the mouse
-				// is over an item in the menu
-				if ( this.previousFilter ) {
-					return;
-				}
-
-				var actualTarget = $( event.target ).closest( ".ui-menu-item" ),
-					target = $( event.currentTarget );
-
-				// Ignore bubbled events on parent items, see #11641
-				if ( actualTarget[ 0 ] !== target[ 0 ] ) {
-					return;
-				}
-
-				// Remove ui-state-active class from siblings of the newly focused menu item
-				// to avoid a jump caused by adjacent elements both having a class with a border
-				this._removeClass( target.siblings().children( ".ui-state-active" ),
-					null, "ui-state-active" );
-				this.focus( event, target );
-			},
-			mouseleave: "collapseAll",
-			"mouseleave .ui-menu": "collapseAll",
-			focus: function( event, keepActiveItem ) {
-
-				// If there's already an active item, keep it active
-				// If not, activate the first item
-				var item = this.active || this.element.find( this.options.items ).eq( 0 );
-
-				if ( !keepActiveItem ) {
-					this.focus( event, item );
-				}
-			},
-			blur: function( event ) {
-				this._delay( function() {
-					var notContained = !$.contains(
-						this.element[ 0 ],
-						$.ui.safeActiveElement( this.document[ 0 ] )
-					);
-					if ( notContained ) {
-						this.collapseAll( event );
-					}
-				} );
-			},
-			keydown: "_keydown"
-		} );
-
-		this.refresh();
-
-		// Clicks outside of a menu collapse any open menus
-		this._on( this.document, {
-			click: function( event ) {
-				if ( this._closeOnDocumentClick( event ) ) {
-					this.collapseAll( event );
-				}
-
-				// Reset the mouseHandled flag
-				this.mouseHandled = false;
-			}
-		} );
-	},
-
-	_destroy: function() {
-		var items = this.element.find( ".ui-menu-item" )
-				.removeAttr( "role aria-disabled" ),
-			submenus = items.children( ".ui-menu-item-wrapper" )
-				.removeUniqueId()
-				.removeAttr( "tabIndex role aria-haspopup" );
-
-		// Destroy (sub)menus
-		this.element
-			.removeAttr( "aria-activedescendant" )
-			.find( ".ui-menu" ).addBack()
-				.removeAttr( "role aria-labelledby aria-expanded aria-hidden aria-disabled " +
-					"tabIndex" )
-				.removeUniqueId()
-				.show();
-
-		submenus.children().each( function() {
-			var elem = $( this );
-			if ( elem.data( "ui-menu-submenu-caret" ) ) {
-				elem.remove();
-			}
-		} );
-	},
-
-	_keydown: function( event ) {
-		var match, prev, character, skip,
-			preventDefault = true;
-
-		switch ( event.keyCode ) {
-		case $.ui.keyCode.PAGE_UP:
-			this.previousPage( event );
-			break;
-		case $.ui.keyCode.PAGE_DOWN:
-			this.nextPage( event );
-			break;
-		case $.ui.keyCode.HOME:
-			this._move( "first", "first", event );
-			break;
-		case $.ui.keyCode.END:
-			this._move( "last", "last", event );
-			break;
-		case $.ui.keyCode.UP:
-			this.previous( event );
-			break;
-		case $.ui.keyCode.DOWN:
-			this.next( event );
-			break;
-		case $.ui.keyCode.LEFT:
-			this.collapse( event );
-			break;
-		case $.ui.keyCode.RIGHT:
-			if ( this.active && !this.active.is( ".ui-state-disabled" ) ) {
-				this.expand( event );
-			}
-			break;
-		case $.ui.keyCode.ENTER:
-		case $.ui.keyCode.SPACE:
-			this._activate( event );
-			break;
-		case $.ui.keyCode.ESCAPE:
-			this.collapse( event );
-			break;
-		default:
-			preventDefault = false;
-			prev = this.previousFilter || "";
-			skip = false;
-
-			// Support number pad values
-			character = event.keyCode >= 96 && event.keyCode <= 105 ?
-				( event.keyCode - 96 ).toString() : String.fromCharCode( event.keyCode );
-
-			clearTimeout( this.filterTimer );
-
-			if ( character === prev ) {
-				skip = true;
-			} else {
-				character = prev + character;
-			}
-
-			match = this._filterMenuItems( character );
-			match = skip && match.index( this.active.next() ) !== -1 ?
-				this.active.nextAll( ".ui-menu-item" ) :
-				match;
-
-			// If no matches on the current filter, reset to the last character pressed
-			// to move down the menu to the first item that starts with that character
-			if ( !match.length ) {
-				character = String.fromCharCode( event.keyCode );
-				match = this._filterMenuItems( character );
-			}
-
-			if ( match.length ) {
-				this.focus( event, match );
-				this.previousFilter = character;
-				this.filterTimer = this._delay( function() {
-					delete this.previousFilter;
-				}, 1000 );
-			} else {
-				delete this.previousFilter;
-			}
-		}
-
-		if ( preventDefault ) {
-			event.preventDefault();
-		}
-	},
-
-	_activate: function( event ) {
-		if ( this.active && !this.active.is( ".ui-state-disabled" ) ) {
-			if ( this.active.children( "[aria-haspopup='true']" ).length ) {
-				this.expand( event );
-			} else {
-				this.select( event );
-			}
-		}
-	},
-
-	refresh: function() {
-		var menus, items, newSubmenus, newItems, newWrappers,
-			that = this,
-			icon = this.options.icons.submenu,
-			submenus = this.element.find( this.options.menus );
-
-		this._toggleClass( "ui-menu-icons", null, !!this.element.find( ".ui-icon" ).length );
-
-		// Initialize nested menus
-		newSubmenus = submenus.filter( ":not(.ui-menu)" )
-			.hide()
-			.attr( {
-				role: this.options.role,
-				"aria-hidden": "true",
-				"aria-expanded": "false"
-			} )
-			.each( function() {
-				var menu = $( this ),
-					item = menu.prev(),
-					submenuCaret = $( "<span>" ).data( "ui-menu-submenu-caret", true );
-
-				that._addClass( submenuCaret, "ui-menu-icon", "ui-icon " + icon );
-				item
-					.attr( "aria-haspopup", "true" )
-					.prepend( submenuCaret );
-				menu.attr( "aria-labelledby", item.attr( "id" ) );
-			} );
-
-		this._addClass( newSubmenus, "ui-menu", "ui-widget ui-widget-content ui-front" );
-
-		menus = submenus.add( this.element );
-		items = menus.find( this.options.items );
-
-		// Initialize menu-items containing spaces and/or dashes only as dividers
-		items.not( ".ui-menu-item" ).each( function() {
-			var item = $( this );
-			if ( that._isDivider( item ) ) {
-				that._addClass( item, "ui-menu-divider", "ui-widget-content" );
-			}
-		} );
-
-		// Don't refresh list items that are already adapted
-		newItems = items.not( ".ui-menu-item, .ui-menu-divider" );
-		newWrappers = newItems.children()
-			.not( ".ui-menu" )
-				.uniqueId()
-				.attr( {
-					tabIndex: -1,
-					role: this._itemRole()
-				} );
-		this._addClass( newItems, "ui-menu-item" )
-			._addClass( newWrappers, "ui-menu-item-wrapper" );
-
-		// Add aria-disabled attribute to any disabled menu item
-		items.filter( ".ui-state-disabled" ).attr( "aria-disabled", "true" );
-
-		// If the active item has been removed, blur the menu
-		if ( this.active && !$.contains( this.element[ 0 ], this.active[ 0 ] ) ) {
-			this.blur();
-		}
-	},
-
-	_itemRole: function() {
-		return {
-			menu: "menuitem",
-			listbox: "option"
-		}[ this.options.role ];
-	},
-
-	_setOption: function( key, value ) {
-		if ( key === "icons" ) {
-			var icons = this.element.find( ".ui-menu-icon" );
-			this._removeClass( icons, null, this.options.icons.submenu )
-				._addClass( icons, null, value.submenu );
-		}
-		this._super( key, value );
-	},
-
-	_setOptionDisabled: function( value ) {
-		this._super( value );
-
-		this.element.attr( "aria-disabled", String( value ) );
-		this._toggleClass( null, "ui-state-disabled", !!value );
-	},
-
-	focus: function( event, item ) {
-		var nested, focused, activeParent;
-		this.blur( event, event && event.type === "focus" );
-
-		this._scrollIntoView( item );
-
-		this.active = item.first();
-
-		focused = this.active.children( ".ui-menu-item-wrapper" );
-		this._addClass( focused, null, "ui-state-active" );
-
-		// Only update aria-activedescendant if there's a role
-		// otherwise we assume focus is managed elsewhere
-		if ( this.options.role ) {
-			this.element.attr( "aria-activedescendant", focused.attr( "id" ) );
-		}
-
-		// Highlight active parent menu item, if any
-		activeParent = this.active
-			.parent()
-				.closest( ".ui-menu-item" )
-					.children( ".ui-menu-item-wrapper" );
-		this._addClass( activeParent, null, "ui-state-active" );
-
-		if ( event && event.type === "keydown" ) {
-			this._close();
-		} else {
-			this.timer = this._delay( function() {
-				this._close();
-			}, this.delay );
-		}
-
-		nested = item.children( ".ui-menu" );
-		if ( nested.length && event && ( /^mouse/.test( event.type ) ) ) {
-			this._startOpening( nested );
-		}
-		this.activeMenu = item.parent();
-
-		this._trigger( "focus", event, { item: item } );
-	},
-
-	_scrollIntoView: function( item ) {
-		var borderTop, paddingTop, offset, scroll, elementHeight, itemHeight;
-		if ( this._hasScroll() ) {
-			borderTop = parseFloat( $.css( this.activeMenu[ 0 ], "borderTopWidth" ) ) || 0;
-			paddingTop = parseFloat( $.css( this.activeMenu[ 0 ], "paddingTop" ) ) || 0;
-			offset = item.offset().top - this.activeMenu.offset().top - borderTop - paddingTop;
-			scroll = this.activeMenu.scrollTop();
-			elementHeight = this.activeMenu.height();
-			itemHeight = item.outerHeight();
-
-			if ( offset < 0 ) {
-				this.activeMenu.scrollTop( scroll + offset );
-			} else if ( offset + itemHeight > elementHeight ) {
-				this.activeMenu.scrollTop( scroll + offset - elementHeight + itemHeight );
-			}
-		}
-	},
-
-	blur: function( event, fromFocus ) {
-		if ( !fromFocus ) {
-			clearTimeout( this.timer );
-		}
-
-		if ( !this.active ) {
-			return;
-		}
-
-		this._removeClass( this.active.children( ".ui-menu-item-wrapper" ),
-			null, "ui-state-active" );
-
-		this._trigger( "blur", event, { item: this.active } );
-		this.active = null;
-	},
-
-	_startOpening: function( submenu ) {
-		clearTimeout( this.timer );
-
-		// Don't open if already open fixes a Firefox bug that caused a .5 pixel
-		// shift in the submenu position when mousing over the caret icon
-		if ( submenu.attr( "aria-hidden" ) !== "true" ) {
-			return;
-		}
-
-		this.timer = this._delay( function() {
-			this._close();
-			this._open( submenu );
-		}, this.delay );
-	},
-
-	_open: function( submenu ) {
-		var position = $.extend( {
-			of: this.active
-		}, this.options.position );
-
-		clearTimeout( this.timer );
-		this.element.find( ".ui-menu" ).not( submenu.parents( ".ui-menu" ) )
-			.hide()
-			.attr( "aria-hidden", "true" );
-
-		submenu
-			.show()
-			.removeAttr( "aria-hidden" )
-			.attr( "aria-expanded", "true" )
-			.position( position );
-	},
-
-	collapseAll: function( event, all ) {
-		clearTimeout( this.timer );
-		this.timer = this._delay( function() {
-
-			// If we were passed an event, look for the submenu that contains the event
-			var currentMenu = all ? this.element :
-				$( event && event.target ).closest( this.element.find( ".ui-menu" ) );
-
-			// If we found no valid submenu ancestor, use the main menu to close all
-			// sub menus anyway
-			if ( !currentMenu.length ) {
-				currentMenu = this.element;
-			}
-
-			this._close( currentMenu );
-
-			this.blur( event );
-
-			// Work around active item staying active after menu is blurred
-			this._removeClass( currentMenu.find( ".ui-state-active" ), null, "ui-state-active" );
-
-			this.activeMenu = currentMenu;
-		}, this.delay );
-	},
-
-	// With no arguments, closes the currently active menu - if nothing is active
-	// it closes all menus.  If passed an argument, it will search for menus BELOW
-	_close: function( startMenu ) {
-		if ( !startMenu ) {
-			startMenu = this.active ? this.active.parent() : this.element;
-		}
-
-		startMenu.find( ".ui-menu" )
-			.hide()
-			.attr( "aria-hidden", "true" )
-			.attr( "aria-expanded", "false" );
-	},
-
-	_closeOnDocumentClick: function( event ) {
-		return !$( event.target ).closest( ".ui-menu" ).length;
-	},
-
-	_isDivider: function( item ) {
-
-		// Match hyphen, em dash, en dash
-		return !/[^\-\u2014\u2013\s]/.test( item.text() );
-	},
-
-	collapse: function( event ) {
-		var newItem = this.active &&
-			this.active.parent().closest( ".ui-menu-item", this.element );
-		if ( newItem && newItem.length ) {
-			this._close();
-			this.focus( event, newItem );
-		}
-	},
-
-	expand: function( event ) {
-		var newItem = this.active &&
-			this.active
-				.children( ".ui-menu " )
-					.find( this.options.items )
-						.first();
-
-		if ( newItem && newItem.length ) {
-			this._open( newItem.parent() );
-
-			// Delay so Firefox will not hide activedescendant change in expanding submenu from AT
-			this._delay( function() {
-				this.focus( event, newItem );
-			} );
-		}
-	},
-
-	next: function( event ) {
-		this._move( "next", "first", event );
-	},
-
-	previous: function( event ) {
-		this._move( "prev", "last", event );
-	},
-
-	isFirstItem: function() {
-		return this.active && !this.active.prevAll( ".ui-menu-item" ).length;
-	},
-
-	isLastItem: function() {
-		return this.active && !this.active.nextAll( ".ui-menu-item" ).length;
-	},
-
-	_move: function( direction, filter, event ) {
-		var next;
-		if ( this.active ) {
-			if ( direction === "first" || direction === "last" ) {
-				next = this.active
-					[ direction === "first" ? "prevAll" : "nextAll" ]( ".ui-menu-item" )
-					.eq( -1 );
-			} else {
-				next = this.active
-					[ direction + "All" ]( ".ui-menu-item" )
-					.eq( 0 );
-			}
-		}
-		if ( !next || !next.length || !this.active ) {
-			next = this.activeMenu.find( this.options.items )[ filter ]();
-		}
-
-		this.focus( event, next );
-	},
-
-	nextPage: function( event ) {
-		var item, base, height;
-
-		if ( !this.active ) {
-			this.next( event );
-			return;
-		}
-		if ( this.isLastItem() ) {
-			return;
-		}
-		if ( this._hasScroll() ) {
-			base = this.active.offset().top;
-			height = this.element.height();
-			this.active.nextAll( ".ui-menu-item" ).each( function() {
-				item = $( this );
-				return item.offset().top - base - height < 0;
-			} );
-
-			this.focus( event, item );
-		} else {
-			this.focus( event, this.activeMenu.find( this.options.items )
-				[ !this.active ? "first" : "last" ]() );
-		}
-	},
-
-	previousPage: function( event ) {
-		var item, base, height;
-		if ( !this.active ) {
-			this.next( event );
-			return;
-		}
-		if ( this.isFirstItem() ) {
-			return;
-		}
-		if ( this._hasScroll() ) {
-			base = this.active.offset().top;
-			height = this.element.height();
-			this.active.prevAll( ".ui-menu-item" ).each( function() {
-				item = $( this );
-				return item.offset().top - base + height > 0;
-			} );
-
-			this.focus( event, item );
-		} else {
-			this.focus( event, this.activeMenu.find( this.options.items ).first() );
-		}
-	},
-
-	_hasScroll: function() {
-		return this.element.outerHeight() < this.element.prop( "scrollHeight" );
-	},
-
-	select: function( event ) {
-
-		// TODO: It should never be possible to not have an active item at this
-		// point, but the tests don't trigger mouseenter before click.
-		this.active = this.active || $( event.target ).closest( ".ui-menu-item" );
-		var ui = { item: this.active };
-		if ( !this.active.has( ".ui-menu" ).length ) {
-			this.collapseAll( event, true );
-		}
-		this._trigger( "select", event, ui );
-	},
-
-	_filterMenuItems: function( character ) {
-		var escapedCharacter = character.replace( /[\-\[\]{}()*+?.,\\\^$|#\s]/g, "\\$&" ),
-			regex = new RegExp( "^" + escapedCharacter, "i" );
-
-		return this.activeMenu
-			.find( this.options.items )
-
-				// Only match on items, not dividers or other content (#10571)
-				.filter( ".ui-menu-item" )
-					.filter( function() {
-						return regex.test(
-							$.trim( $( this ).children( ".ui-menu-item-wrapper" ).text() ) );
-					} );
-	}
-} );
-
-
-/*!
- * jQuery UI Selectmenu 1.12.1
- * http://jqueryui.com
- *
- * Copyright jQuery Foundation and other contributors
- * Released under the MIT license.
- * http://jquery.org/license
- */
-
-//>>label: Selectmenu
-//>>group: Widgets
-// jscs:disable maximumLineLength
-//>>description: Duplicates and extends the functionality of a native HTML select element, allowing it to be customizable in behavior and appearance far beyond the limitations of a native select.
-// jscs:enable maximumLineLength
-//>>docs: http://api.jqueryui.com/selectmenu/
-//>>demos: http://jqueryui.com/selectmenu/
-//>>css.structure: ../../themes/base/core.css
-//>>css.structure: ../../themes/base/selectmenu.css, ../../themes/base/button.css
-//>>css.theme: ../../themes/base/theme.css
-
-
-
-var widgetsSelectmenu = $.widget( "ui.selectmenu", [ $.ui.formResetMixin, {
-	version: "1.12.1",
-	defaultElement: "<select>",
-	options: {
-		appendTo: null,
-		classes: {
-			"ui-selectmenu-button-open": "ui-corner-top",
-			"ui-selectmenu-button-closed": "ui-corner-all"
-		},
-		disabled: null,
-		icons: {
-			button: "ui-icon-triangle-1-s"
-		},
-		position: {
-			my: "left top",
-			at: "left bottom",
-			collision: "none"
-		},
-		width: false,
-
-		// Callbacks
-		change: null,
-		close: null,
-		focus: null,
-		open: null,
-		select: null
-	},
-
-	_create: function() {
-		var selectmenuId = this.element.uniqueId().attr( "id" );
-		this.ids = {
-			element: selectmenuId,
-			button: selectmenuId + "-button",
-			menu: selectmenuId + "-menu"
-		};
-
-		this._drawButton();
-		this._drawMenu();
-		this._bindFormResetHandler();
-
-		this._rendered = false;
-		this.menuItems = $();
-	},
-
-	_drawButton: function() {
-		var icon,
-			that = this,
-			item = this._parseOption(
-				this.element.find( "option:selected" ),
-				this.element[ 0 ].selectedIndex
-			);
-
-		// Associate existing label with the new button
-		this.labels = this.element.labels().attr( "for", this.ids.button );
-		this._on( this.labels, {
-			click: function( event ) {
-				this.button.focus();
-				event.preventDefault();
-			}
-		} );
-
-		// Hide original select element
-		this.element.hide();
-
-		// Create button
-		this.button = $( "<span>", {
-			tabindex: this.options.disabled ? -1 : 0,
-			id: this.ids.button,
-			role: "combobox",
-			"aria-expanded": "false",
-			"aria-autocomplete": "list",
-			"aria-owns": this.ids.menu,
-			"aria-haspopup": "true",
-			title: this.element.attr( "title" )
-		} )
-			.insertAfter( this.element );
-
-		this._addClass( this.button, "ui-selectmenu-button ui-selectmenu-button-closed",
-			"ui-button ui-widget" );
-
-		icon = $( "<span>" ).appendTo( this.button );
-		this._addClass( icon, "ui-selectmenu-icon", "ui-icon " + this.options.icons.button );
-		this.buttonItem = this._renderButtonItem( item )
-			.appendTo( this.button );
-
-		if ( this.options.width !== false ) {
-			this._resizeButton();
-		}
-
-		this._on( this.button, this._buttonEvents );
-		this.button.one( "focusin", function() {
-
-			// Delay rendering the menu items until the button receives focus.
-			// The menu may have already been rendered via a programmatic open.
-			if ( !that._rendered ) {
-				that._refreshMenu();
-			}
-		} );
-	},
-
-	_drawMenu: function() {
-		var that = this;
-
-		// Create menu
-		this.menu = $( "<ul>", {
-			"aria-hidden": "true",
-			"aria-labelledby": this.ids.button,
-			id: this.ids.menu
-		} );
-
-		// Wrap menu
-		this.menuWrap = $( "<div>" ).append( this.menu );
-		this._addClass( this.menuWrap, "ui-selectmenu-menu", "ui-front" );
-		this.menuWrap.appendTo( this._appendTo() );
-
-		// Initialize menu widget
-		this.menuInstance = this.menu
-			.menu( {
-				classes: {
-					"ui-menu": "ui-corner-bottom"
-				},
-				role: "listbox",
-				select: function( event, ui ) {
-					event.preventDefault();
-
-					// Support: IE8
-					// If the item was selected via a click, the text selection
-					// will be destroyed in IE
-					that._setSelection();
-
-					that._select( ui.item.data( "ui-selectmenu-item" ), event );
-				},
-				focus: function( event, ui ) {
-					var item = ui.item.data( "ui-selectmenu-item" );
-
-					// Prevent inital focus from firing and check if its a newly focused item
-					if ( that.focusIndex != null && item.index !== that.focusIndex ) {
-						that._trigger( "focus", event, { item: item } );
-						if ( !that.isOpen ) {
-							that._select( item, event );
-						}
-					}
-					that.focusIndex = item.index;
-
-					that.button.attr( "aria-activedescendant",
-						that.menuItems.eq( item.index ).attr( "id" ) );
-				}
-			} )
-			.menu( "instance" );
-
-		// Don't close the menu on mouseleave
-		this.menuInstance._off( this.menu, "mouseleave" );
-
-		// Cancel the menu's collapseAll on document click
-		this.menuInstance._closeOnDocumentClick = function() {
-			return false;
-		};
-
-		// Selects often contain empty items, but never contain dividers
-		this.menuInstance._isDivider = function() {
-			return false;
-		};
-	},
-
-	refresh: function() {
-		this._refreshMenu();
-		this.buttonItem.replaceWith(
-			this.buttonItem = this._renderButtonItem(
-
-				// Fall back to an empty object in case there are no options
-				this._getSelectedItem().data( "ui-selectmenu-item" ) || {}
-			)
-		);
-		if ( this.options.width === null ) {
-			this._resizeButton();
-		}
-	},
-
-	_refreshMenu: function() {
-		var item,
-			options = this.element.find( "option" );
-
-		this.menu.empty();
-
-		this._parseOptions( options );
-		this._renderMenu( this.menu, this.items );
-
-		this.menuInstance.refresh();
-		this.menuItems = this.menu.find( "li" )
-			.not( ".ui-selectmenu-optgroup" )
-				.find( ".ui-menu-item-wrapper" );
-
-		this._rendered = true;
-
-		if ( !options.length ) {
-			return;
-		}
-
-		item = this._getSelectedItem();
-
-		// Update the menu to have the correct item focused
-		this.menuInstance.focus( null, item );
-		this._setAria( item.data( "ui-selectmenu-item" ) );
-
-		// Set disabled state
-		this._setOption( "disabled", this.element.prop( "disabled" ) );
-	},
-
-	open: function( event ) {
-		if ( this.options.disabled ) {
-			return;
-		}
-
-		// If this is the first time the menu is being opened, render the items
-		if ( !this._rendered ) {
-			this._refreshMenu();
-		} else {
-
-			// Menu clears focus on close, reset focus to selected item
-			this._removeClass( this.menu.find( ".ui-state-active" ), null, "ui-state-active" );
-			this.menuInstance.focus( null, this._getSelectedItem() );
-		}
-
-		// If there are no options, don't open the menu
-		if ( !this.menuItems.length ) {
-			return;
-		}
-
-		this.isOpen = true;
-		this._toggleAttr();
-		this._resizeMenu();
-		this._position();
-
-		this._on( this.document, this._documentClick );
-
-		this._trigger( "open", event );
-	},
-
-	_position: function() {
-		this.menuWrap.position( $.extend( { of: this.button }, this.options.position ) );
-	},
-
-	close: function( event ) {
-		if ( !this.isOpen ) {
-			return;
-		}
-
-		this.isOpen = false;
-		this._toggleAttr();
-
-		this.range = null;
-		this._off( this.document );
-
-		this._trigger( "close", event );
-	},
-
-	widget: function() {
-		return this.button;
-	},
-
-	menuWidget: function() {
-		return this.menu;
-	},
-
-	_renderButtonItem: function( item ) {
-		var buttonItem = $( "<span>" );
-
-		this._setText( buttonItem, item.label );
-		this._addClass( buttonItem, "ui-selectmenu-text" );
-
-		return buttonItem;
-	},
-
-	_renderMenu: function( ul, items ) {
-		var that = this,
-			currentOptgroup = "";
-
-		$.each( items, function( index, item ) {
-			var li;
-
-			if ( item.optgroup !== currentOptgroup ) {
-				li = $( "<li>", {
-					text: item.optgroup
-				} );
-				that._addClass( li, "ui-selectmenu-optgroup", "ui-menu-divider" +
-					( item.element.parent( "optgroup" ).prop( "disabled" ) ?
-						" ui-state-disabled" :
-						"" ) );
-
-				li.appendTo( ul );
-
-				currentOptgroup = item.optgroup;
-			}
-
-			that._renderItemData( ul, item );
-		} );
-	},
-
-	_renderItemData: function( ul, item ) {
-		return this._renderItem( ul, item ).data( "ui-selectmenu-item", item );
-	},
-
-	_renderItem: function( ul, item ) {
-		var li = $( "<li>" ),
-			wrapper = $( "<div>", {
-				title: item.element.attr( "title" )
-			} );
-
-		if ( item.disabled ) {
-			this._addClass( li, null, "ui-state-disabled" );
-		}
-		this._setText( wrapper, item.label );
-
-		return li.append( wrapper ).appendTo( ul );
-	},
-
-	_setText: function( element, value ) {
-		if ( value ) {
-			element.text( value );
-		} else {
-			element.html( "&#160;" );
-		}
-	},
-
-	_move: function( direction, event ) {
-		var item, next,
-			filter = ".ui-menu-item";
-
-		if ( this.isOpen ) {
-			item = this.menuItems.eq( this.focusIndex ).parent( "li" );
-		} else {
-			item = this.menuItems.eq( this.element[ 0 ].selectedIndex ).parent( "li" );
-			filter += ":not(.ui-state-disabled)";
-		}
-
-		if ( direction === "first" || direction === "last" ) {
-			next = item[ direction === "first" ? "prevAll" : "nextAll" ]( filter ).eq( -1 );
-		} else {
-			next = item[ direction + "All" ]( filter ).eq( 0 );
-		}
-
-		if ( next.length ) {
-			this.menuInstance.focus( event, next );
-		}
-	},
-
-	_getSelectedItem: function() {
-		return this.menuItems.eq( this.element[ 0 ].selectedIndex ).parent( "li" );
-	},
-
-	_toggle: function( event ) {
-		this[ this.isOpen ? "close" : "open" ]( event );
-	},
-
-	_setSelection: function() {
-		var selection;
-
-		if ( !this.range ) {
-			return;
-		}
-
-		if ( window.getSelection ) {
-			selection = window.getSelection();
-			selection.removeAllRanges();
-			selection.addRange( this.range );
-
-		// Support: IE8
-		} else {
-			this.range.select();
-		}
-
-		// Support: IE
-		// Setting the text selection kills the button focus in IE, but
-		// restoring the focus doesn't kill the selection.
-		this.button.focus();
-	},
-
-	_documentClick: {
-		mousedown: function( event ) {
-			if ( !this.isOpen ) {
-				return;
-			}
-
-			if ( !$( event.target ).closest( ".ui-selectmenu-menu, #" +
-					$.ui.escapeSelector( this.ids.button ) ).length ) {
-				this.close( event );
-			}
-		}
-	},
-
-	_buttonEvents: {
-
-		// Prevent text selection from being reset when interacting with the selectmenu (#10144)
-		mousedown: function() {
-			var selection;
-
-			if ( window.getSelection ) {
-				selection = window.getSelection();
-				if ( selection.rangeCount ) {
-					this.range = selection.getRangeAt( 0 );
-				}
-
-			// Support: IE8
-			} else {
-				this.range = document.selection.createRange();
-			}
-		},
-
-		click: function( event ) {
-			this._setSelection();
-			this._toggle( event );
-		},
-
-		keydown: function( event ) {
-			var preventDefault = true;
-			switch ( event.keyCode ) {
-			case $.ui.keyCode.TAB:
-			case $.ui.keyCode.ESCAPE:
-				this.close( event );
-				preventDefault = false;
-				break;
-			case $.ui.keyCode.ENTER:
-				if ( this.isOpen ) {
-					this._selectFocusedItem( event );
-				}
-				break;
-			case $.ui.keyCode.UP:
-				if ( event.altKey ) {
-					this._toggle( event );
-				} else {
-					this._move( "prev", event );
-				}
-				break;
-			case $.ui.keyCode.DOWN:
-				if ( event.altKey ) {
-					this._toggle( event );
-				} else {
-					this._move( "next", event );
-				}
-				break;
-			case $.ui.keyCode.SPACE:
-				if ( this.isOpen ) {
-					this._selectFocusedItem( event );
-				} else {
-					this._toggle( event );
-				}
-				break;
-			case $.ui.keyCode.LEFT:
-				this._move( "prev", event );
-				break;
-			case $.ui.keyCode.RIGHT:
-				this._move( "next", event );
-				break;
-			case $.ui.keyCode.HOME:
-			case $.ui.keyCode.PAGE_UP:
-				this._move( "first", event );
-				break;
-			case $.ui.keyCode.END:
-			case $.ui.keyCode.PAGE_DOWN:
-				this._move( "last", event );
-				break;
-			default:
-				this.menu.trigger( event );
-				preventDefault = false;
-			}
-
-			if ( preventDefault ) {
-				event.preventDefault();
-			}
-		}
-	},
-
-	_selectFocusedItem: function( event ) {
-		var item = this.menuItems.eq( this.focusIndex ).parent( "li" );
-		if ( !item.hasClass( "ui-state-disabled" ) ) {
-			this._select( item.data( "ui-selectmenu-item" ), event );
-		}
-	},
-
-	_select: function( item, event ) {
-		var oldIndex = this.element[ 0 ].selectedIndex;
-
-		// Change native select element
-		this.element[ 0 ].selectedIndex = item.index;
-		this.buttonItem.replaceWith( this.buttonItem = this._renderButtonItem( item ) );
-		this._setAria( item );
-		this._trigger( "select", event, { item: item } );
-
-		if ( item.index !== oldIndex ) {
-			this._trigger( "change", event, { item: item } );
-		}
-
-		this.close( event );
-	},
-
-	_setAria: function( item ) {
-		var id = this.menuItems.eq( item.index ).attr( "id" );
-
-		this.button.attr( {
-			"aria-labelledby": id,
-			"aria-activedescendant": id
-		} );
-		this.menu.attr( "aria-activedescendant", id );
-	},
-
-	_setOption: function( key, value ) {
-		if ( key === "icons" ) {
-			var icon = this.button.find( "span.ui-icon" );
-			this._removeClass( icon, null, this.options.icons.button )
-				._addClass( icon, null, value.button );
-		}
-
-		this._super( key, value );
-
-		if ( key === "appendTo" ) {
-			this.menuWrap.appendTo( this._appendTo() );
-		}
-
-		if ( key === "width" ) {
-			this._resizeButton();
-		}
-	},
-
-	_setOptionDisabled: function( value ) {
-		this._super( value );
-
-		this.menuInstance.option( "disabled", value );
-		this.button.attr( "aria-disabled", value );
-		this._toggleClass( this.button, null, "ui-state-disabled", value );
-
-		this.element.prop( "disabled", value );
-		if ( value ) {
-			this.button.attr( "tabindex", -1 );
-			this.close();
-		} else {
-			this.button.attr( "tabindex", 0 );
-		}
-	},
-
-	_appendTo: function() {
-		var element = this.options.appendTo;
-
-		if ( element ) {
-			element = element.jquery || element.nodeType ?
-				$( element ) :
-				this.document.find( element ).eq( 0 );
-		}
-
-		if ( !element || !element[ 0 ] ) {
-			element = this.element.closest( ".ui-front, dialog" );
-		}
-
-		if ( !element.length ) {
-			element = this.document[ 0 ].body;
-		}
-
-		return element;
-	},
-
-	_toggleAttr: function() {
-		this.button.attr( "aria-expanded", this.isOpen );
-
-		// We can't use two _toggleClass() calls here, because we need to make sure
-		// we always remove classes first and add them second, otherwise if both classes have the
-		// same theme class, it will be removed after we add it.
-		this._removeClass( this.button, "ui-selectmenu-button-" +
-			( this.isOpen ? "closed" : "open" ) )
-			._addClass( this.button, "ui-selectmenu-button-" +
-				( this.isOpen ? "open" : "closed" ) )
-			._toggleClass( this.menuWrap, "ui-selectmenu-open", null, this.isOpen );
-
-		this.menu.attr( "aria-hidden", !this.isOpen );
-	},
-
-	_resizeButton: function() {
-		var width = this.options.width;
-
-		// For `width: false`, just remove inline style and stop
-		if ( width === false ) {
-			this.button.css( "width", "" );
-			return;
-		}
-
-		// For `width: null`, match the width of the original element
-		if ( width === null ) {
-			width = this.element.show().outerWidth();
-			this.element.hide();
-		}
-
-		this.button.outerWidth( width );
-	},
-
-	_resizeMenu: function() {
-		this.menu.outerWidth( Math.max(
-			this.button.outerWidth(),
-
-			// Support: IE10
-			// IE10 wraps long text (possibly a rounding bug)
-			// so we add 1px to avoid the wrapping
-			this.menu.width( "" ).outerWidth() + 1
-		) );
-	},
-
-	_getCreateOptions: function() {
-		var options = this._super();
-
-		options.disabled = this.element.prop( "disabled" );
-
-		return options;
-	},
-
-	_parseOptions: function( options ) {
-		var that = this,
-			data = [];
-		options.each( function( index, item ) {
-			data.push( that._parseOption( $( item ), index ) );
-		} );
-		this.items = data;
-	},
-
-	_parseOption: function( option, index ) {
-		var optgroup = option.parent( "optgroup" );
-
-		return {
-			element: option,
-			index: index,
-			value: option.val(),
-			label: option.text(),
-			optgroup: optgroup.attr( "label" ) || "",
-			disabled: optgroup.prop( "disabled" ) || option.prop( "disabled" )
-		};
-	},
-
-	_destroy: function() {
-		this._unbindFormResetHandler();
-		this.menuWrap.remove();
-		this.button.remove();
-		this.element.show();
-		this.element.removeUniqueId();
-		this.labels.attr( "for", this.ids.element );
-	}
-} ] );
-
-
 /*!
  * jQuery UI Slider 1.12.1
  * http://jqueryui.com
@@ -8839,6 +7829,36 @@ var widgetsSlider = $.widget( "ui.slider", $.ui.mouse, {
 		}
 	}
 } );
+
+
+
+var safeActiveElement = $.ui.safeActiveElement = function( document ) {
+	var activeElement;
+
+	// Support: IE 9 only
+	// IE9 throws an "Unspecified error" accessing document.activeElement from an <iframe>
+	try {
+		activeElement = document.activeElement;
+	} catch ( error ) {
+		activeElement = document.body;
+	}
+
+	// Support: IE 9 - 11 only
+	// IE may return null instead of an element
+	// Interestingly, this only seems to occur when NOT in an iframe
+	if ( !activeElement ) {
+		activeElement = document.body;
+	}
+
+	// Support: IE 11 only
+	// IE11 returns a seemingly empty object in some cases when accessing
+	// document.activeElement from an <iframe>
+	if ( !activeElement.nodeName ) {
+		activeElement = document.body;
+	}
+
+	return activeElement;
+};
 
 
 /*!
@@ -9745,509 +8765,6 @@ if ( $.uiBackCompat !== false ) {
 }
 
 var widgetsTabs = $.ui.tabs;
-
-
-/*!
- * jQuery UI Tooltip 1.12.1
- * http://jqueryui.com
- *
- * Copyright jQuery Foundation and other contributors
- * Released under the MIT license.
- * http://jquery.org/license
- */
-
-//>>label: Tooltip
-//>>group: Widgets
-//>>description: Shows additional information for any element on hover or focus.
-//>>docs: http://api.jqueryui.com/tooltip/
-//>>demos: http://jqueryui.com/tooltip/
-//>>css.structure: ../../themes/base/core.css
-//>>css.structure: ../../themes/base/tooltip.css
-//>>css.theme: ../../themes/base/theme.css
-
-
-
-$.widget( "ui.tooltip", {
-	version: "1.12.1",
-	options: {
-		classes: {
-			"ui-tooltip": "ui-corner-all ui-widget-shadow"
-		},
-		content: function() {
-
-			// support: IE<9, Opera in jQuery <1.7
-			// .text() can't accept undefined, so coerce to a string
-			var title = $( this ).attr( "title" ) || "";
-
-			// Escape title, since we're going from an attribute to raw HTML
-			return $( "<a>" ).text( title ).html();
-		},
-		hide: true,
-
-		// Disabled elements have inconsistent behavior across browsers (#8661)
-		items: "[title]:not([disabled])",
-		position: {
-			my: "left top+15",
-			at: "left bottom",
-			collision: "flipfit flip"
-		},
-		show: true,
-		track: false,
-
-		// Callbacks
-		close: null,
-		open: null
-	},
-
-	_addDescribedBy: function( elem, id ) {
-		var describedby = ( elem.attr( "aria-describedby" ) || "" ).split( /\s+/ );
-		describedby.push( id );
-		elem
-			.data( "ui-tooltip-id", id )
-			.attr( "aria-describedby", $.trim( describedby.join( " " ) ) );
-	},
-
-	_removeDescribedBy: function( elem ) {
-		var id = elem.data( "ui-tooltip-id" ),
-			describedby = ( elem.attr( "aria-describedby" ) || "" ).split( /\s+/ ),
-			index = $.inArray( id, describedby );
-
-		if ( index !== -1 ) {
-			describedby.splice( index, 1 );
-		}
-
-		elem.removeData( "ui-tooltip-id" );
-		describedby = $.trim( describedby.join( " " ) );
-		if ( describedby ) {
-			elem.attr( "aria-describedby", describedby );
-		} else {
-			elem.removeAttr( "aria-describedby" );
-		}
-	},
-
-	_create: function() {
-		this._on( {
-			mouseover: "open",
-			focusin: "open"
-		} );
-
-		// IDs of generated tooltips, needed for destroy
-		this.tooltips = {};
-
-		// IDs of parent tooltips where we removed the title attribute
-		this.parents = {};
-
-		// Append the aria-live region so tooltips announce correctly
-		this.liveRegion = $( "<div>" )
-			.attr( {
-				role: "log",
-				"aria-live": "assertive",
-				"aria-relevant": "additions"
-			} )
-			.appendTo( this.document[ 0 ].body );
-		this._addClass( this.liveRegion, null, "ui-helper-hidden-accessible" );
-
-		this.disabledTitles = $( [] );
-	},
-
-	_setOption: function( key, value ) {
-		var that = this;
-
-		this._super( key, value );
-
-		if ( key === "content" ) {
-			$.each( this.tooltips, function( id, tooltipData ) {
-				that._updateContent( tooltipData.element );
-			} );
-		}
-	},
-
-	_setOptionDisabled: function( value ) {
-		this[ value ? "_disable" : "_enable" ]();
-	},
-
-	_disable: function() {
-		var that = this;
-
-		// Close open tooltips
-		$.each( this.tooltips, function( id, tooltipData ) {
-			var event = $.Event( "blur" );
-			event.target = event.currentTarget = tooltipData.element[ 0 ];
-			that.close( event, true );
-		} );
-
-		// Remove title attributes to prevent native tooltips
-		this.disabledTitles = this.disabledTitles.add(
-			this.element.find( this.options.items ).addBack()
-				.filter( function() {
-					var element = $( this );
-					if ( element.is( "[title]" ) ) {
-						return element
-							.data( "ui-tooltip-title", element.attr( "title" ) )
-							.removeAttr( "title" );
-					}
-				} )
-		);
-	},
-
-	_enable: function() {
-
-		// restore title attributes
-		this.disabledTitles.each( function() {
-			var element = $( this );
-			if ( element.data( "ui-tooltip-title" ) ) {
-				element.attr( "title", element.data( "ui-tooltip-title" ) );
-			}
-		} );
-		this.disabledTitles = $( [] );
-	},
-
-	open: function( event ) {
-		var that = this,
-			target = $( event ? event.target : this.element )
-
-				// we need closest here due to mouseover bubbling,
-				// but always pointing at the same event target
-				.closest( this.options.items );
-
-		// No element to show a tooltip for or the tooltip is already open
-		if ( !target.length || target.data( "ui-tooltip-id" ) ) {
-			return;
-		}
-
-		if ( target.attr( "title" ) ) {
-			target.data( "ui-tooltip-title", target.attr( "title" ) );
-		}
-
-		target.data( "ui-tooltip-open", true );
-
-		// Kill parent tooltips, custom or native, for hover
-		if ( event && event.type === "mouseover" ) {
-			target.parents().each( function() {
-				var parent = $( this ),
-					blurEvent;
-				if ( parent.data( "ui-tooltip-open" ) ) {
-					blurEvent = $.Event( "blur" );
-					blurEvent.target = blurEvent.currentTarget = this;
-					that.close( blurEvent, true );
-				}
-				if ( parent.attr( "title" ) ) {
-					parent.uniqueId();
-					that.parents[ this.id ] = {
-						element: this,
-						title: parent.attr( "title" )
-					};
-					parent.attr( "title", "" );
-				}
-			} );
-		}
-
-		this._registerCloseHandlers( event, target );
-		this._updateContent( target, event );
-	},
-
-	_updateContent: function( target, event ) {
-		var content,
-			contentOption = this.options.content,
-			that = this,
-			eventType = event ? event.type : null;
-
-		if ( typeof contentOption === "string" || contentOption.nodeType ||
-				contentOption.jquery ) {
-			return this._open( event, target, contentOption );
-		}
-
-		content = contentOption.call( target[ 0 ], function( response ) {
-
-			// IE may instantly serve a cached response for ajax requests
-			// delay this call to _open so the other call to _open runs first
-			that._delay( function() {
-
-				// Ignore async response if tooltip was closed already
-				if ( !target.data( "ui-tooltip-open" ) ) {
-					return;
-				}
-
-				// JQuery creates a special event for focusin when it doesn't
-				// exist natively. To improve performance, the native event
-				// object is reused and the type is changed. Therefore, we can't
-				// rely on the type being correct after the event finished
-				// bubbling, so we set it back to the previous value. (#8740)
-				if ( event ) {
-					event.type = eventType;
-				}
-				this._open( event, target, response );
-			} );
-		} );
-		if ( content ) {
-			this._open( event, target, content );
-		}
-	},
-
-	_open: function( event, target, content ) {
-		var tooltipData, tooltip, delayedShow, a11yContent,
-			positionOption = $.extend( {}, this.options.position );
-
-		if ( !content ) {
-			return;
-		}
-
-		// Content can be updated multiple times. If the tooltip already
-		// exists, then just update the content and bail.
-		tooltipData = this._find( target );
-		if ( tooltipData ) {
-			tooltipData.tooltip.find( ".ui-tooltip-content" ).html( content );
-			return;
-		}
-
-		// If we have a title, clear it to prevent the native tooltip
-		// we have to check first to avoid defining a title if none exists
-		// (we don't want to cause an element to start matching [title])
-		//
-		// We use removeAttr only for key events, to allow IE to export the correct
-		// accessible attributes. For mouse events, set to empty string to avoid
-		// native tooltip showing up (happens only when removing inside mouseover).
-		if ( target.is( "[title]" ) ) {
-			if ( event && event.type === "mouseover" ) {
-				target.attr( "title", "" );
-			} else {
-				target.removeAttr( "title" );
-			}
-		}
-
-		tooltipData = this._tooltip( target );
-		tooltip = tooltipData.tooltip;
-		this._addDescribedBy( target, tooltip.attr( "id" ) );
-		tooltip.find( ".ui-tooltip-content" ).html( content );
-
-		// Support: Voiceover on OS X, JAWS on IE <= 9
-		// JAWS announces deletions even when aria-relevant="additions"
-		// Voiceover will sometimes re-read the entire log region's contents from the beginning
-		this.liveRegion.children().hide();
-		a11yContent = $( "<div>" ).html( tooltip.find( ".ui-tooltip-content" ).html() );
-		a11yContent.removeAttr( "name" ).find( "[name]" ).removeAttr( "name" );
-		a11yContent.removeAttr( "id" ).find( "[id]" ).removeAttr( "id" );
-		a11yContent.appendTo( this.liveRegion );
-
-		function position( event ) {
-			positionOption.of = event;
-			if ( tooltip.is( ":hidden" ) ) {
-				return;
-			}
-			tooltip.position( positionOption );
-		}
-		if ( this.options.track && event && /^mouse/.test( event.type ) ) {
-			this._on( this.document, {
-				mousemove: position
-			} );
-
-			// trigger once to override element-relative positioning
-			position( event );
-		} else {
-			tooltip.position( $.extend( {
-				of: target
-			}, this.options.position ) );
-		}
-
-		tooltip.hide();
-
-		this._show( tooltip, this.options.show );
-
-		// Handle tracking tooltips that are shown with a delay (#8644). As soon
-		// as the tooltip is visible, position the tooltip using the most recent
-		// event.
-		// Adds the check to add the timers only when both delay and track options are set (#14682)
-		if ( this.options.track && this.options.show && this.options.show.delay ) {
-			delayedShow = this.delayedShow = setInterval( function() {
-				if ( tooltip.is( ":visible" ) ) {
-					position( positionOption.of );
-					clearInterval( delayedShow );
-				}
-			}, $.fx.interval );
-		}
-
-		this._trigger( "open", event, { tooltip: tooltip } );
-	},
-
-	_registerCloseHandlers: function( event, target ) {
-		var events = {
-			keyup: function( event ) {
-				if ( event.keyCode === $.ui.keyCode.ESCAPE ) {
-					var fakeEvent = $.Event( event );
-					fakeEvent.currentTarget = target[ 0 ];
-					this.close( fakeEvent, true );
-				}
-			}
-		};
-
-		// Only bind remove handler for delegated targets. Non-delegated
-		// tooltips will handle this in destroy.
-		if ( target[ 0 ] !== this.element[ 0 ] ) {
-			events.remove = function() {
-				this._removeTooltip( this._find( target ).tooltip );
-			};
-		}
-
-		if ( !event || event.type === "mouseover" ) {
-			events.mouseleave = "close";
-		}
-		if ( !event || event.type === "focusin" ) {
-			events.focusout = "close";
-		}
-		this._on( true, target, events );
-	},
-
-	close: function( event ) {
-		var tooltip,
-			that = this,
-			target = $( event ? event.currentTarget : this.element ),
-			tooltipData = this._find( target );
-
-		// The tooltip may already be closed
-		if ( !tooltipData ) {
-
-			// We set ui-tooltip-open immediately upon open (in open()), but only set the
-			// additional data once there's actually content to show (in _open()). So even if the
-			// tooltip doesn't have full data, we always remove ui-tooltip-open in case we're in
-			// the period between open() and _open().
-			target.removeData( "ui-tooltip-open" );
-			return;
-		}
-
-		tooltip = tooltipData.tooltip;
-
-		// Disabling closes the tooltip, so we need to track when we're closing
-		// to avoid an infinite loop in case the tooltip becomes disabled on close
-		if ( tooltipData.closing ) {
-			return;
-		}
-
-		// Clear the interval for delayed tracking tooltips
-		clearInterval( this.delayedShow );
-
-		// Only set title if we had one before (see comment in _open())
-		// If the title attribute has changed since open(), don't restore
-		if ( target.data( "ui-tooltip-title" ) && !target.attr( "title" ) ) {
-			target.attr( "title", target.data( "ui-tooltip-title" ) );
-		}
-
-		this._removeDescribedBy( target );
-
-		tooltipData.hiding = true;
-		tooltip.stop( true );
-		this._hide( tooltip, this.options.hide, function() {
-			that._removeTooltip( $( this ) );
-		} );
-
-		target.removeData( "ui-tooltip-open" );
-		this._off( target, "mouseleave focusout keyup" );
-
-		// Remove 'remove' binding only on delegated targets
-		if ( target[ 0 ] !== this.element[ 0 ] ) {
-			this._off( target, "remove" );
-		}
-		this._off( this.document, "mousemove" );
-
-		if ( event && event.type === "mouseleave" ) {
-			$.each( this.parents, function( id, parent ) {
-				$( parent.element ).attr( "title", parent.title );
-				delete that.parents[ id ];
-			} );
-		}
-
-		tooltipData.closing = true;
-		this._trigger( "close", event, { tooltip: tooltip } );
-		if ( !tooltipData.hiding ) {
-			tooltipData.closing = false;
-		}
-	},
-
-	_tooltip: function( element ) {
-		var tooltip = $( "<div>" ).attr( "role", "tooltip" ),
-			content = $( "<div>" ).appendTo( tooltip ),
-			id = tooltip.uniqueId().attr( "id" );
-
-		this._addClass( content, "ui-tooltip-content" );
-		this._addClass( tooltip, "ui-tooltip", "ui-widget ui-widget-content" );
-
-		tooltip.appendTo( this._appendTo( element ) );
-
-		return this.tooltips[ id ] = {
-			element: element,
-			tooltip: tooltip
-		};
-	},
-
-	_find: function( target ) {
-		var id = target.data( "ui-tooltip-id" );
-		return id ? this.tooltips[ id ] : null;
-	},
-
-	_removeTooltip: function( tooltip ) {
-		tooltip.remove();
-		delete this.tooltips[ tooltip.attr( "id" ) ];
-	},
-
-	_appendTo: function( target ) {
-		var element = target.closest( ".ui-front, dialog" );
-
-		if ( !element.length ) {
-			element = this.document[ 0 ].body;
-		}
-
-		return element;
-	},
-
-	_destroy: function() {
-		var that = this;
-
-		// Close open tooltips
-		$.each( this.tooltips, function( id, tooltipData ) {
-
-			// Delegate to close method to handle common cleanup
-			var event = $.Event( "blur" ),
-				element = tooltipData.element;
-			event.target = event.currentTarget = element[ 0 ];
-			that.close( event, true );
-
-			// Remove immediately; destroying an open tooltip doesn't use the
-			// hide animation
-			$( "#" + id ).remove();
-
-			// Restore the title
-			if ( element.data( "ui-tooltip-title" ) ) {
-
-				// If the title attribute has changed since open(), don't restore
-				if ( !element.attr( "title" ) ) {
-					element.attr( "title", element.data( "ui-tooltip-title" ) );
-				}
-				element.removeData( "ui-tooltip-title" );
-			}
-		} );
-		this.liveRegion.remove();
-	}
-} );
-
-// DEPRECATED
-// TODO: Switch return back to widget declaration at top of file when this is removed
-if ( $.uiBackCompat !== false ) {
-
-	// Backcompat for tooltipClass option
-	$.widget( "ui.tooltip", $.ui.tooltip, {
-		options: {
-			tooltipClass: null
-		},
-		_tooltip: function() {
-			var tooltipData = this._superApply( arguments );
-			if ( this.options.tooltipClass ) {
-				tooltipData.tooltip.addClass( this.options.tooltipClass );
-			}
-			return tooltipData;
-		}
-	} );
-}
-
-var widgetsTooltip = $.ui.tooltip;
 
 
 

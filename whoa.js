@@ -21,12 +21,12 @@ $(document).ready(function(){
    console.log(init.decay);
   });
 
-  $('#cats').on('focus','.name',function() {
+  $('.cats').on('focus','.name',function() {
    lastName = $(this).val();
    console.log(lastName);
   })
 
-  $('#cats').on('change','.name',function() {
+  $('.cats').on('change','.name',function() {
    if (init.categories[$(this).val()] == null) {
      init.categories[$(this).val()] = init.categories[lastName];
      delete init.categories[lastName];
@@ -36,12 +36,12 @@ $(document).ready(function(){
    console.log(init.categories);
   })
 
-  $('#cats').on('change','.startdate',function() {
+  $('.cats').on('change','.startdate',function() {
    init.categories[$(this).siblings(".name").val()][0] = dateToInd($(this).datepicker('getDate'));
    console.log(init.categories);
   })
 
-  $("#cats").on("change",".priority",function() {
+  $(".cats").on("change",".priority",function() {
    init.categories[$(this).siblings(".name").val()][1] = Number($(this).val());
    console.log(init.categories);
   })
@@ -50,9 +50,9 @@ $(document).ready(function(){
    appendNewCategory();
   })
 
-  $('#cats').on('click','.del',function() {
+  $('.cats').on('click','.del',function() {
    delete init.categories[$(this).siblings('.name').val()];
-   $(this).parent().remove();
+   $(this).parents("li").remove();
   })
 
   $('#gen').click(function() {
@@ -402,7 +402,7 @@ $(document).ready(function(){
 
   updateResults();
 
-  $(document).tooltip();
+  //$(document).tooltip();
 });
 
 function updateResults() {
@@ -486,9 +486,9 @@ function indToDate(ind) {
 }
 
 function loadCategories() {
- $("#cats").empty();
+ $(".cats").empty();
  for (category in init.categories) {
-   $("#cats").append(newCategory(category));
+   $(".cats").append(newCategory(category));
  }
 }
 
@@ -499,17 +499,19 @@ function appendNewCategory() {
    i++;
  }
  defaultName += i;
- init.categories[defaultName] = [1,1];
- $("#cats").append(newCategory(defaultName));
+ init.categories[defaultName] = [dateToInd(new Date()),1];
+ $(".cats").append(newCategory(defaultName));
 }
 
 function newCategory(category) {
  var item = $("<li></li>");
- var name = $("<input type = \"text\" class=\"name\"></input>").val(category);
- var date = $("<input type = \"text\" class=\"startdate\"></input>");
+ var right = $("<span></span>").addClass("right");
+ var name = $("<input type = \"text\" class=\"name\"></input>").val(category).attr("title","Category name");
+ var date = $("<input type = \"text\" class=\"startdate\"></input>").attr("title","Introduction date");
  date.datepicker().datepicker('setDate',indToDate(init.categories[category][0]));
- var priority = $("<input type = \"number\" class=\"priority\"></input>").val(init.categories[category][1]);
- var del = $("<button class=\"del\"></button>").text("delete");
- item.append(name,date,priority,del);
+ var priority = $("<input type = \"number\" class=\"priority\"></input>").val(init.categories[category][1]).attr('title',"Weight (higher is higher)");
+ var del = $("<button class=\"del\"></button>").text("X").attr('title',"Delete");
+ right.append(date,priority,del);
+ item.append(name,right);
  return item;
 }

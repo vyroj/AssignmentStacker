@@ -5,7 +5,7 @@ var init = {
   rise: .05,
   decay: .05,
   categories : {
-    default : [1,1]
+    default : [dateToInd(new Date()),1]
   },
   dates : {
   }

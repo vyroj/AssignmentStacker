@@ -1,3 +1,79 @@
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+    -moz-appearance:textfield;
+    width:3em;
+    text-align: center;
+}
+input {
+  border: none;
+  background-color: transparent;
+}
+input:focus{
+  border-bottom-style:solid;
+  border-bottom-width: thin;
+  border-bottom-color: red;
+}
+
 .selected {
   background-color: grey;
+}
+
+.ui-tabs-vertical {
+  width:63em;
+  margin:auto;
+}
+.ui-tabs-vertical .ui-tabs-nav {
+  padding: .2em .1em .2em .2em;
+  float: left;
+  width: auto;
+  background-color: #ffffff;
+  border-width: 0;
+}
+.ui-tabs-vertical .ui-tabs-nav li {
+  clear: left;
+  width: 100%;
+  border-bottom-width: 1px !important;
+  border-right-width: 1px !important;
+  margin: 0 -1px .2em 0;
+}
+.ui-tabs-vertical .ui-tabs-nav li a {
+  display:block;
+}
+.ui-tabs-vertical .ui-tabs-panel {
+  padding: 1em;
+  float: right;
+  width: 55em;
+}
+
+#rise, #decay, #init {
+  margin-left: 1em;
+  background-color:#f9f5f5;
+}
+
+ul {
+  list-style: none;
+}
+.cats li {
+  background-color: #f9f5f5;
+  margin-bottom: .5em;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+
+.cats .startdate {
+  width:5em;
+  text-align: center;
+}
+.cats .name {
+  width:max_content;
+  flex: 10;
+}
+.cats .right {
+  white-space: nowrap;
+  flex:1;
 }

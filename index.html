@@ -25,8 +25,14 @@
         <div class="accordion">
           <h3>Settings</h3>
           <div>
-            <span title="How fast is this subject memorized?">Rise: <br><input type="number" id="rise" step="any"></input></span> <br>
-            <span title="How fast is this subject forgotten?">Decay: <bR><input type="number" id="decay" step="any"></input></span> <br>
+            <span title="How fast is this subject memorized?">Rise: <br>
+              <input type="number" id="rise" step="any"></input>
+              <div id="riseslider"></div>
+            </span> <br>
+            <span title="How fast is this subject forgotten?">Decay: <br>
+              <input type="number" id="decay" step="any"></input>
+              <div id="decayslider"></div>
+            </span> <br>
           </div>
           <h3>Categories</h3>
           <div>
@@ -37,13 +43,14 @@
           <div>
             <div id="test"></div>
             <div id="test2"></div>
-            <button id="gen">generate</button>
+            <button class="gen" style="background-color:#ffa099; border-color: #ffa099">generate</button>
           </div>
           <h3>Save and Load</h3>
           <div>
-            Load Pregenerated Data (extension .asti): <br>
+            Load Pregenerated Data (extension .aai): <br>
+            <label for="init"><div id="initrep" tabindex="0">Choose a file...</div></label>
             <input type="file" id="init"></input>
-            <br><br>
+            <br>
             <button id="downloadi">Download Pregenerated Data</button>
           </div>
         </div>
@@ -53,7 +60,7 @@
         <div class="accordion">
           <h3>Current</h3>
           <div>
-            <input type="text" id="pickdate"></input>
+            <span title="Show assignments for which day?">Date: <br><input type="text" id="pickdate"></input></span>
             <br>
             <ul id="currentDisplay">
             </ul>
@@ -62,40 +69,20 @@
           <div>
             <div id="chart"></div>
           </div>
+          <h3>All</h3>
+          <div id="totalDisplay">
+
+          </div>
           <h3>Save and Load</h3>
           <div>
-            <input type="file" id="past">Load Past</input>
+            Load Output Data (extension .aao): <br>
+            <label for="past"><div id="pastrep" tabindex="0">Choose a file...</div></label>
+            <input type="file" id="past"></input>
             <br>
-            <button id="download">Download</button>
+            <button id="download">Download Output Data</button>
           </div>
         </div>
       </div>
     </div>
-
-    <script>
-    /*
-      var openFile = function(event) {
-        var input = event.target;
-
-        var reader = new FileReader();
-        reader.onload = function(){
-          var text = reader.result;
-          console.log(reader.result.substring(0, 200));
-        };
-        reader.readAsText(input.files[0]);
-        reader.onloadend = function () {
-            console.log('DONE', reader.readyState);
-            printo(parse(reader.result));
-        };
-      };
-      var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generate(init,past,filter),null, "\t"));
-      var dlAnchorElem = document.getElementById('downloadAnchorElem');
-      dlAnchorElem.setAttribute("href",     dataStr     );
-      dlAnchorElem.setAttribute("download", "scene.stack");
-      dlAnchorElem.click();
-      console.log(generate(init,past,filter));
-      printo(generate(init,past,filter));
-      */
-    </script>
   </body>
 </html>

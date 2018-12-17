@@ -12,7 +12,7 @@ input {
   border: none;
   background-color: transparent;
 }
-input:focus{
+input:focus, #initrep:focus, #pastrep:focus{
   border-bottom-style:solid;
   border-bottom-width: thin;
   border-bottom-color: red;
@@ -49,7 +49,7 @@ input:focus{
   width: 55em;
 }
 
-#rise, #decay, #init {
+#rise, #decay, #initrep, #pastrep, #pickdate {
   margin-left: 1em;
   background-color:#f9f5f5;
 }
@@ -65,7 +65,7 @@ ul {
   flex-wrap: nowrap;
 }
 
-.cats .startdate {
+.cats .startdate, #pickdate {
   width:5em;
   text-align: center;
 }
@@ -76,4 +76,12 @@ ul {
 .cats .right {
   white-space: nowrap;
   flex:1;
+}
+
+#init, #past {
+  visibility: hidden;
+}
+#initrep, #pastrep {
+  width:10em;
+  text-align: center;
 }

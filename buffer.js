@@ -29,7 +29,7 @@ function printo(database) {
   }
 }
 
-function filtercut(past,filter) {
+function filtercut(past,init) {
   var database = {};
 
   for (category in past) {
@@ -37,7 +37,7 @@ function filtercut(past,filter) {
     var pastKeys = Object.keys(past[category]);
 
     outerloop : for (var i = 0; i < pastKeys.length; i++) {
-      if (pastKeys[i] > filter.cutoff) {
+      if (pastKeys[i] > init.cutoff) {
         break outerloop;
       }
 

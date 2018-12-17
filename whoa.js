@@ -1,3 +1,14 @@
+var min = 0;
+var max = .5;
+var factor = 20;
+
+function slideToVal(num) {
+  return min+(max-min)*(Math.pow(factor,parseFloat(num/100))-1)/(factor-1);
+}
+function valToSlide(num) {
+  return (Math.log(1+((num-min)/(max-min))*(factor-1))/Math.log(factor))*100;
+}
+
 $(document).ready(function(){
   //on load stuff
   $("#cutoff").val(init.cutoff);
@@ -13,13 +24,39 @@ $(document).ready(function(){
 
   $("#rise").change(function() {
    init.rise = Number($("#rise").val());
+   if (init.rise < 0) {
+     init.rise = 0;
+     $(this).val(init.rise);
+   }
    console.log(init.rise);
+   $('#riseslider').slider('value',valToSlide($(this).val()));
   });
+  $("#riseslider").slider({
+    slide: function( event, ui ) {}
+  });
+  $('#riseslider').slider('value',valToSlide($('#rise').val()));
+  $('#riseslider').on("slide",function() {
+    $('#rise').val(slideToVal($(this).slider('value')));
+    init.rise =slideToVal($(this).slider('value'));
+  })
 
   $("#decay").change(function() {
    init.decay = Number($("#decay").val());
+   if (init.decay < 0) {
+     init.decay = 0;
+     $(this).val(init.decay);
+   }
    console.log(init.decay);
+   $('#decayslider').slider('value',valToSlide($(this).val()));
   });
+  $("#decayslider").slider({
+    slide: function( event, ui ) {}
+  });
+  $('#decayslider').slider('value',valToSlide($('#decay').val()));
+  $('#decayslider').on("slide",function() {
+    $('#decay').val(slideToVal($(this).slider('value')));
+    init.decay =slideToVal($(this).slider('value'));
+  })
 
   $('.cats').on('focus','.name',function() {
    lastName = $(this).val();
@@ -37,12 +74,12 @@ $(document).ready(function(){
   })
 
   $('.cats').on('change','.startdate',function() {
-   init.categories[$(this).siblings(".name").val()][0] = dateToInd($(this).datepicker('getDate'));
+   init.categories[$(this).parent().siblings(".name").val()][0] = dateToInd($(this).datepicker('getDate'));
    console.log(init.categories);
   })
 
   $(".cats").on("change",".priority",function() {
-   init.categories[$(this).siblings(".name").val()][1] = Number($(this).val());
+   init.categories[$(this).parent().siblings(".name").val()][1] = Number($(this).val());
    console.log(init.categories);
   })
 
@@ -51,11 +88,12 @@ $(document).ready(function(){
   })
 
   $('.cats').on('click','.del',function() {
-   delete init.categories[$(this).siblings('.name').val()];
+   delete init.categories[$(this).parent().siblings('.name').val()];
    $(this).parents("li").remove();
   })
 
-  $('#gen').click(function() {
+  $('.gen').click(function() {
+    console.log("generate");
     updateResults();
   })
 
@@ -75,6 +113,7 @@ $(document).ready(function(){
      }
    };
    reader.readAsText(input.files[0]);
+   $('#pastrep').text(event.target.files[0].name);
   })
 
   $('#download').click(function() {
@@ -103,14 +142,15 @@ $(document).ready(function(){
       }
     };
     reader.readAsText(input.files[0]);
+    $('#initrep').text(event.target.files[0].name);
   })
 
   $('#downloadi').click(function() {
-    updateResults();
+    updateInit();
     var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(init,null, "\t"));
     var downloadObject = document.createElement("a");
     downloadObject.setAttribute("href", dataStr);
-    downloadObject.setAttribute("download", "init.stack");
+    downloadObject.setAttribute("download", "init.aai");
     document.body.appendChild(downloadObject);
     downloadObject.click();
     document.body.removeChild(downloadObject);
@@ -397,7 +437,7 @@ $(document).ready(function(){
 
   $("#pickdate").datepicker().datepicker('setDate',new Date());
   $("#pickdate").change(function() {
-    displayResults();
+    displayResults($("#currentDisplay"),$(this).datepicker('getDate'));
   })
 
   updateResults();
@@ -405,15 +445,20 @@ $(document).ready(function(){
   //$(document).tooltip();
 });
 
-function updateResults() {
+function updateInit() {
   init.dates = $("#test2").acalendar('option','times');
   init.cutoff = $("#test2").acalendar('option','cutoff');
   console.log(init.cutoff);
   init.colors = $("#test").legend('option','colors');
+}
+
+function updateResults() {
+  updateInit();
   past = generate(init,past);
   console.log(past);
 
-  displayResults();
+  $('#pickdate').trigger("change");
+  displayAll();
   chartIt();
 }
 
@@ -427,12 +472,25 @@ function reverseUpdate() {
   $("#decay").val(init.decay);
 }
 
-function displayResults() {
-  $("#currentDisplay").empty();
+function displayResults(target,date) {
+  target.empty();
   for (category in past) {
-    if (past[category][dateToInd($("#pickdate").datepicker('getDate'))] != null) {
-      $("#currentDisplay").append($("<li></li>").text(category+": "+Math.round(past[category][dateToInd($("#pickdate").datepicker('getDate'))][0])+" min"));
+    if (past[category][dateToInd(date)] != null) {
+      target.append($("<li></li>").text(category+" - "+Math.round(past[category][dateToInd(date)][0])+" min"));
     }
+  }
+}
+
+function displayAll() {
+  var target = $('#totalDisplay').empty();
+  for (category in past) {
+    target.append($('<span></span>').text("Category - "+category),$("<br>"));
+    var list = $('<ul></ul>');
+    for (date in past[category]) {
+      list.append($('<li></li>').text(indToDate(date).toISOString().split('T')[0].replace('-','/').replace('-','/')+" - "
+      +Math.round(past[category][date][0])+" min"));
+    }
+    target.append(list);
   }
 }
 

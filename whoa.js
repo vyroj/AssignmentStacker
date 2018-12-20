@@ -100,27 +100,32 @@ $(document).ready(function(){
   $('#past').change(function(event) {
    var input = event.target;
 
-   var reader = new FileReader();
-   reader.onload = function(){
-     var text = reader.result;
-     console.log(reader.result.substring(0, 200));
-     try {
-       past=JSON.parse(text);
-       chartIt();
-     }
-     finally {
-       console.log(past);
-     }
-   };
-   reader.readAsText(input.files[0]);
-   $('#pastrep').text(event.target.files[0].name);
+   if (input.files[0].name.split('.')[1] == "aao") {
+
+     var reader = new FileReader();
+     reader.onload = function(){
+       var text = reader.result;
+       console.log(reader.result.substring(0, 200));
+       try {
+         past=JSON.parse(text);
+         chartIt();
+       }
+       finally {
+         console.log(past);
+       }
+     };
+     reader.readAsText(input.files[0]);
+   } else {
+     alert("wrong file extension");
+   }
+   $('#pastrep').text(input.files[0].name);
   })
 
   $('#download').click(function() {
     var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(past,null, "\t"));
     var downloadObject = document.createElement("a");
     downloadObject.setAttribute("href", dataStr);
-    downloadObject.setAttribute("download", "scene.stack");
+    downloadObject.setAttribute("download", "scene.aao");
     document.body.appendChild(downloadObject);
     downloadObject.click();
     document.body.removeChild(downloadObject);
@@ -129,20 +134,24 @@ $(document).ready(function(){
   $('#init').change(function(event) {
     var input = event.target;
 
-    var reader = new FileReader();
-    reader.onload = function(){
-      var text = reader.result;
-      console.log(reader.result.substring(0, 200));
-      try {
-        init=JSON.parse(text);
-        reverseUpdate();
-      }
-      finally {
-        console.log(init);
-      }
-    };
-    reader.readAsText(input.files[0]);
-    $('#initrep').text(event.target.files[0].name);
+    if (input.files[0].name.split('.')[1] == "aai") {
+      var reader = new FileReader();
+      reader.onload = function(){
+        var text = reader.result;
+        console.log(reader.result.substring(0, 200));
+        try {
+          init=JSON.parse(text);
+          reverseUpdate();
+        }
+        finally {
+          console.log(init);
+        }
+      };
+      reader.readAsText(input.files[0]);
+    } else {
+      alert("wrong file extension");
+    }
+    $('#initrep').text(input.files[0].name);
   })
 
   $('#downloadi').click(function() {
@@ -158,7 +167,7 @@ $(document).ready(function(){
 
   $.widget('custom.legend', {
    options: {
-     colors : {1:"#ffdddd"},
+     colors : {15:"#ffdddd"},
      oldKey: "",
      selected : null,
      calRef : $(".acalendar")
@@ -173,7 +182,7 @@ $(document).ready(function(){
        },
        "click .legend-del" : function(event) {
          this._remove($(event.target).siblings(".legend-time").val());
-         $(event.target).parent().remove();
+         $(event.target).parent('li').remove();
        },
        "mouseenter .legend-time" : function(event) {
          this.options.oldKey = $(event.target).val();
@@ -181,7 +190,6 @@ $(document).ready(function(){
        },
        "focus .legend-time" : function(event) {
          this.options.oldKey = $(event.target).val();
-         this._select($(event.target).parent());
          console.log(this.options.oldKey);
        },
        "change .legend-time" : function(event) {
@@ -191,6 +199,13 @@ $(document).ready(function(){
          this.options.selected = "cutoff";
          $(this.element).find(".selected").removeClass("selected");
          $(this.element).find(".cut").addClass("selected");
+       },
+       "click .box" : function(event) {
+         console.log($(event.target).siblings(".picker").element);
+         $(event.target).siblings(".picker").spectrum("show");
+       },
+       "click .sel" : function(event) {
+         this._select($(event.target).parents('li'));
        }
      } );
    },
@@ -201,11 +216,13 @@ $(document).ready(function(){
    },
    _displayNew: function(time,_color) {
      var item = $("<li></li>");
+     var select = $("<span></span>").text("O").addClass("sel");
      var displayTime = $("<input type = \"number\" class = \"legend-time\"></input>").val(time);
-     var displayColor =$("<input type = \"text\"></input>").val(_color);
-     var del = $("<button class=\"legend-del\">X</button>");
-     item.append(displayTime,displayColor,del);
-     $(this.element).prepend(item);
+     var min = $("<span></span>").text("min.");
+     var displayColor =$("<div></div>").addClass('box').val(_color).addClass("picker").css('background-color',_color);
+     var del = $("<span class=\"legend-del\">X</span>");
+     item.append(select,displayTime,min,displayColor,del);
+     $(this.element.children('.content')).append(item);
      this._select(item);
      $(displayColor).spectrum({
        className: 'legend-color',
@@ -213,16 +230,24 @@ $(document).ready(function(){
          var _legend = $(this).parents(".legend");
          _legend.legend("changeColor",$(this).siblings(".legend-time").val(),color.toHexString());
          console.log(_legend.legend("option"));
+       },
+       move: function(color) {
+         $(this).css('background-color',color.toHexString());
+       },
+       show: function () {
        }
      });
    },
    refresh: function() {
      this.selected = null;
      $('.legend').empty();
-     $(this.element).append($("<button></button>").text("cutoff").addClass("cut"));
+     $(this.element).append($("<button></button>").text("splice date").addClass("cut"));
+
+     $(this.element).append($('<div></div>').addClass('content'));
      for (color in this.options.colors) {
        this._displayNew(color,this.options.colors[color]);
      }
+
      var plusItem = $("<button class = \"legend-plus\">+</button>");
      $(this.element).append(plusItem);
    },
@@ -484,7 +509,7 @@ function displayResults(target,date) {
 function displayAll() {
   var target = $('#totalDisplay').empty();
   for (category in past) {
-    target.append($('<span></span>').text("Category - "+category),$("<br>"));
+    target.append($('<span></span>').text("Category: "+category),$("<br>"));
     var list = $('<ul></ul>');
     for (date in past[category]) {
       list.append($('<li></li>').text(indToDate(date).toISOString().split('T')[0].replace('-','/').replace('-','/')+" - "
